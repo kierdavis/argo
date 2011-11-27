@@ -244,11 +244,13 @@ func (graph *Graph) WriteXML(writer io.Writer) (err os.Error) {
 
 	subjects := graph.TriplesBySubject()
 	pnum := 0
-	prefixes := map[string]string{}
+	prefixes := map[string]string{"http://www.w3.org/1999/02/22-rdf-syntax-ns#": "rdf"}
 
+	/*
 	for uri, prefix := range graph.prefixes {
 		prefixes[uri] = prefix
 	}
+	*/
 	
 	for subject, triples := range subjects {
 		for i, triple := range triples {
@@ -260,8 +262,12 @@ func (graph *Graph) WriteXML(writer io.Writer) (err os.Error) {
 					triple.Predicate.prefix = prefix
 				}
 			} else {
-				triple.Predicate.prefix = fmt.Sprintf("p%d", pnum)
-				prefixes[base] = triple.Predicate.prefix
+				prefix, ok = graph.prefixes[base]
+				if !ok {
+					prefix = fmt.Sprintf("p%d", pnum)
+				}
+				triple.Predicate.prefix = prefix
+				prefixes[base] = prefix
 				pnum++
 			}
 			triple.Predicate.name = name

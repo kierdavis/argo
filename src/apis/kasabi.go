@@ -3,7 +3,7 @@ package argo_kasabi
 import (
 	"fmt"
 	"http"
-	"json"
+	//"json"
 	"os"
 	"argo"
 )
@@ -69,6 +69,7 @@ func (dataset *Dataset) Lookup(uri string) (graph *argo.Graph, err os.Error) {
 	return graph, nil
 }
 
+/* // JSON parsing is a little dodgy due to type conversions, switch to XML instead?
 func (dataset *Dataset) SparqlSelect(query string) (result *SparqlSelectResult, err os.Error) {
 	url := fmt.Sprintf("http://api.kasabi.com/dataset/%s/apis/sparql?apikey=%s&query=%s&output=json", dataset.name, http.URLEscape(dataset.apiKey), http.URLEscape(query))
 
@@ -113,3 +114,4 @@ func (dataset *Dataset) SparqlSelect(query string) (result *SparqlSelectResult, 
 
 	return result, nil
 }
+*/

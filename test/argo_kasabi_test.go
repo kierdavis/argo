@@ -26,14 +26,13 @@ func main() {
 
 	dataset := argo_kasabi.OpenDataset("icdb", apiKey, 1)
 
-	/*
 	graph, err := dataset.Lookup("http://data.kasabi.com/dataset/icdb/ic/ic555")
 	if err != nil {panic(err)}
 	graph.WriteXML(os.Stdout)
-	*/
 
+	/*
 	result, err := dataset.SparqlSelect("SELECT ?p ?o WHERE {<http://data.kasabi.com/dataset/icdb/ic/ic555> ?p ?o .}")
 	if err != nil {panic(err)}
-
+	*/
 	
 }

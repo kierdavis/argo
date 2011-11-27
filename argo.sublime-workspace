@@ -1,0 +1,606 @@
+{
+	"auto_complete":
+	{
+		"selected_items":
+		[
+		]
+	},
+	"buffers":
+	[
+		{
+			"file": "/home/kier/mc/freya-iou.txt",
+			"settings":
+			{
+				"buffer_size": 143,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "build.py",
+			"settings":
+			{
+				"buffer_size": 894,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "src/apis/kasabi.go",
+			"settings":
+			{
+				"buffer_size": 2871,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "test/argo_kasabi_test.go",
+			"settings":
+			{
+				"buffer_size": 846,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "/home/kier/bin/timeit",
+			"settings":
+			{
+				"buffer_size": 627,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "test/argo_test.go",
+			"settings":
+			{
+				"buffer_size": 645,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "src/argo/graph.go",
+			"settings":
+			{
+				"buffer_size": 8177,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "benchmark/benchmark-argo.go",
+			"settings":
+			{
+				"buffer_size": 492,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "src/argo/namespace.go",
+			"settings":
+			{
+				"buffer_size": 1406,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "benchmark/benchmark-rdflib.py",
+			"settings":
+			{
+				"buffer_size": 491,
+				"line_ending": "Unix"
+			}
+		},
+		{
+			"file": "benchmark/run-benchmarks.py",
+			"settings":
+			{
+				"buffer_size": 1085,
+				"line_ending": "Unix"
+			}
+		}
+	],
+	"build_system": "Packages/aaapackagedev/Support/Json to tmLanguage.sublime-build",
+	"command_palette":
+	{
+		"height": 392.0,
+		"selected_items":
+		[
+		],
+		"width": 392.0
+	},
+	"console":
+	{
+		"height": 129.0
+	},
+	"distraction_free":
+	{
+		"menu_visible": true,
+		"show_minimap": false,
+		"show_open_files": false,
+		"show_tabs": false,
+		"side_bar_visible": false,
+		"status_bar_visible": false
+	},
+	"file_history":
+	[
+		"/home/kier/bin/sublime_text",
+		"/home/kier/mc/freya-iou.txt",
+		"/home/kier/go/argo/build.py",
+		"/home/kier/go/argo/test/argo_test.go",
+		"/home/kier/go/argo/test/argo_kasabi_test.go",
+		"/home/kier/n1/nu/nugo/nuasm.go",
+		"/home/kier/go/argo/src/apis/kasabi.go",
+		"/home/kier/go/argo/src/rdflib/graph.go",
+		"/home/kier/go/argo/src/rdflib/namespace.go",
+		"/home/kier/go/argo/src/rdflib/store.go",
+		"/home/kier/go/argo/src/rdflib/term.go",
+		"/home/kier/go/argo/src/rdflib/triple.go",
+		"/home/kier/go/argo/apikey.txt",
+		"/home/kier/go/argo/src/rdflib/sparql.go",
+		"/home/kier/go/argo/test.go",
+		"/home/kier/go/argo/Makefile",
+		"/home/kier/go/argo/src/store.go",
+		"/home/kier/go/argo/src/term.go",
+		"/home/kier/go/argo/src/triple.go",
+		"/home/kier/go/argo/src/namespace.go",
+		"/home/kier/go/argo/src/graph.go",
+		"/home/kier/go/argo/src/schema.go",
+		"/home/kier/ferdf/ferdf.fe",
+		"/home/kier/go/rdflib/build.esh",
+		"/home/kier/go/rdflib/namespace.go",
+		"/home/kier/go/rdflib/term.go",
+		"/home/kier/go/rdflib/triple.go",
+		"/home/kier/go/rdflib/store.go",
+		"/home/kier/go/rdflib/graph.go",
+		"/home/kier/go/rdflib/test.go",
+		"/home/kier/libraries/gcc-4.6.1/libgo/go/os/error.go",
+		"/home/kier/.config/sublime-text-2/Packages/Default/Global.sublime-settings",
+		"/home/kier/libraries/gcc-4.6.1/libgo/go/exp/datafmt/datafmt.go",
+		"/home/kier/libraries/gcc-4.6.1/libgo/go/exp/datafmt/parser.go",
+		"/home/kier/.config/sublime-text-2/Packages/Default/Base File.sublime-settings",
+		"/home/kier/.config/sublime-text-2/Packages/User/Global.sublime-settings",
+		"/home/kier/lolcode/test.lol",
+		"/home/kier/lolcode/pi.lol",
+		"/home/kier/.config/sublime-text-2/Packages/Python/Python.tmLanguage",
+		"/home/kier/.config/sublime-text-2/Packages/LOLCode/LOLCode.JSON-tmLanguage",
+		"/home/kier/.config/sublime-text-2/Packages/LOLCode/LOLCode.tmLanguage",
+		"/home/kier/.config/sublime-text-2/Packages/Python/Python.tmLanguage.cache",
+		"/home/kier/.config/sublime-text-2/Packages/LOLCode/LOLCode.py",
+		"/home/kier/n1/n4/n4-draft.txt",
+		"/home/kier/go/n4asm.go",
+		"/home/kier/go/primes.go",
+		"/home/kier/go/server.go",
+		"/home/kier/go/testrun.go",
+		"/home/kier/avrem/src/avrem.py"
+	],
+	"find":
+	{
+		"height": 33.0
+	},
+	"find_in_files":
+	{
+		"height": 0.0,
+		"where_history":
+		[
+		]
+	},
+	"find_state":
+	{
+		"case_sensitive": true,
+		"find_history":
+		[
+			"i, prefix := range graph.prefixes {\n		prefixes[uri] = prefix\n	}",
+			"rdflib_kasabi",
+			"rdflib",
+			"uriTerm",
+			"uri",
+			"err = ",
+			"Triples",
+			"Iter",
+			"rdflib.",
+			"Term",
+			"subj",
+			"create",
+			"createPipe()",
+			"inst.Cond",
+			"}",
+			"Args",
+			"Pipeline",
+			"string",
+			"fmt.Printf",
+			"fmt.Sprintf",
+			"em.log"
+		],
+		"highlight": true,
+		"in_selection": false,
+		"preserve_case": false,
+		"regex": false,
+		"replace_history":
+		[
+			"argo_kasabi",
+			"argo",
+			"rdflib",
+			"baseURITerm",
+			"baseURI",
+			"n, err = ",
+			"triples",
+			"iter",
+			"",
+			"rdflib.Term",
+			"ctx",
+			"obj",
+			"pred",
+			"Create",
+			"createPipe(in)",
+			"cond",
+			"RawArgs",
+			"Pipe",
+			"em.LogInstruction",
+			"",
+			"fmt.Printf"
+		],
+		"reverse": false,
+		"show_context": true,
+		"use_buffer2": true,
+		"whole_word": true,
+		"wrap": true
+	},
+	"groups":
+	[
+		{
+			"selected": 9,
+			"sheets":
+			[
+				{
+					"buffer": 0,
+					"file": "/home/kier/mc/freya-iou.txt",
+					"settings":
+					{
+						"buffer_size": 143,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								0,
+								0
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Text/Plain text.tmLanguage"
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"type": "text"
+				},
+				{
+					"buffer": 1,
+					"file": "build.py",
+					"settings":
+					{
+						"buffer_size": 894,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								856,
+								856
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Python/Python.tmLanguage",
+							"translate_tabs_to_spaces": false
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"type": "text"
+				},
+				{
+					"buffer": 2,
+					"file": "src/apis/kasabi.go",
+					"settings":
+					{
+						"buffer_size": 2871,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								2417,
+								2423
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Go/Go.tmLanguage",
+							"translate_tabs_to_spaces": false
+						},
+						"translation.x": 0.0,
+						"translation.y": 384.0,
+						"zoom_level": 1.0
+					},
+					"type": "text"
+				},
+				{
+					"buffer": 3,
+					"file": "test/argo_kasabi_test.go",
+					"settings":
+					{
+						"buffer_size": 846,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								838,
+								838
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Go/Go.tmLanguage",
+							"translate_tabs_to_spaces": false
+						},
+						"translation.x": 0.0,
+						"translation.y": 96.0,
+						"zoom_level": 1.0
+					},
+					"type": "text"
+				},
+				{
+					"buffer": 4,
+					"file": "/home/kier/bin/timeit",
+					"settings":
+					{
+						"buffer_size": 627,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								283,
+								283
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Python/Python.tmLanguage",
+							"tab_size": 2,
+							"translate_tabs_to_spaces": true
+						},
+						"translation.x": 0.0,
+						"translation.y": 48.0,
+						"zoom_level": 1.0
+					},
+					"type": "text"
+				},
+				{
+					"buffer": 5,
+					"file": "test/argo_test.go",
+					"settings":
+					{
+						"buffer_size": 645,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								123,
+								60
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Go/Go.tmLanguage",
+							"translate_tabs_to_spaces": false
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"type": "text"
+				},
+				{
+					"buffer": 6,
+					"file": "src/argo/graph.go",
+					"settings":
+					{
+						"buffer_size": 8177,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								4046,
+								4087
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Go/Go.tmLanguage",
+							"translate_tabs_to_spaces": false
+						},
+						"translation.x": 0.0,
+						"translation.y": 2832.0,
+						"zoom_level": 1.0
+					},
+					"type": "text"
+				},
+				{
+					"buffer": 7,
+					"file": "benchmark/benchmark-argo.go",
+					"settings":
+					{
+						"buffer_size": 492,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								470,
+								490
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Go/Go.tmLanguage"
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"type": "text"
+				},
+				{
+					"buffer": 8,
+					"file": "src/argo/namespace.go",
+					"settings":
+					{
+						"buffer_size": 1406,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								149,
+								149
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Go/Go.tmLanguage",
+							"translate_tabs_to_spaces": false
+						},
+						"translation.x": 0.0,
+						"translation.y": 240.0,
+						"zoom_level": 1.0
+					},
+					"type": "text"
+				},
+				{
+					"buffer": 9,
+					"file": "benchmark/benchmark-rdflib.py",
+					"settings":
+					{
+						"buffer_size": 491,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								491,
+								491
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Python/Python.tmLanguage"
+						},
+						"translation.x": 0.0,
+						"translation.y": 0.0,
+						"zoom_level": 1.0
+					},
+					"type": "text"
+				},
+				{
+					"buffer": 10,
+					"file": "benchmark/run-benchmarks.py",
+					"settings":
+					{
+						"buffer_size": 1085,
+						"regions":
+						{
+						},
+						"selection":
+						[
+							[
+								300,
+								300
+							]
+						],
+						"settings":
+						{
+							"syntax": "Packages/Python/Python.tmLanguage"
+						},
+						"translation.x": 0.0,
+						"translation.y": 144.0,
+						"zoom_level": 1.0
+					},
+					"type": "text"
+				}
+			]
+		}
+	],
+	"incremental_find":
+	{
+		"height": 0.0
+	},
+	"input":
+	{
+		"height": 0.0
+	},
+	"layout":
+	{
+		"cells":
+		[
+			[
+				0,
+				0,
+				1,
+				1
+			]
+		],
+		"cols":
+		[
+			0.0,
+			1.0
+		],
+		"rows":
+		[
+			0.0,
+			1.0
+		]
+	},
+	"menu_visible": true,
+	"replace":
+	{
+		"height": 62.0
+	},
+	"save_all_on_build": true,
+	"select_file":
+	{
+		"height": 0.0,
+		"selected_items":
+		[
+		],
+		"width": 0.0
+	},
+	"select_project":
+	{
+		"height": 0.0,
+		"selected_items":
+		[
+		],
+		"width": 0.0
+	},
+	"show_minimap": true,
+	"show_open_files": false,
+	"show_tabs": true,
+	"side_bar_visible": true,
+	"side_bar_width": 150.0,
+	"status_bar_visible": true
+}
