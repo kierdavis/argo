@@ -1,4 +1,4 @@
-package rdflib
+package argo
 
 import (
 	"container/vector"

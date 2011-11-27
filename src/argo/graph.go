@@ -1,8 +1,9 @@
-package rdflib
+package argo
 
 import (
 	"fmt"
 	"io"
+	"json"
 	"os"
 	"strings"
 )
@@ -30,13 +31,18 @@ func (graph *Graph) init() {
 	graph.prefixes = map[string]string{"http://www.w3.org/1999/02/22-rdf-syntax-ns#": "rdf"}
 }
 
-func (graph *Graph) Bind(uri string, prefix string) {
-	graph.prefixes[uri] = prefix
-}
-
-func (graph *Graph) BindNamespace(uri string, prefix string) (ns *Namespace) {
+func (graph *Graph) Bind(uri string, prefix string) (ns *Namespace) {
 	graph.prefixes[uri] = prefix
 	return CreateNamespace(uri)
+}
+
+func (graph *Graph) LookupAndBind(prefix string) (ns *Namespace, err os.Error) {
+	uri, err := Lookup(prefix)
+	if err == nil {
+		return graph.Bind(uri, prefix), nil
+	}
+	
+	return nil, err
 }
 
 func (graph *Graph) Store() (store Store) {
@@ -123,10 +129,102 @@ func splitPrefix(uri string) (base string, name string) {
 	return "", ""
 }
 
+/*
+func (graph *Graph) ReadNTriples(reader io.Reader) (err os.Error) {
+	buffer := []byte{}
+	inputBuffer := new([1024]byte)[:]
+	var n int
+	var err os.Error
+	var line string
+	var index int
+
+	for {
+		index = bytes.Index("\n", buffer)
+
+		if index < 0 {
+			n, err = reader.Read(inputBuffer)
+			if err != nil {return err}
+
+			buffer = bytes.Join([][]byte{buffer, inputBuffer}, "")
+			index = bytes.Index("\n", buffer)
+		}
+		
+
+	}
+}
+*/
+
+func ParseJSONTerm(obj map[string]string) (term *Term, err os.Error) {
+	t, type_ok := obj["type"]
+	if !type_ok {return nil, os.ErrorString("No type property found")}
+
+	value, value_ok := obj["value"]
+	if !value_ok {return nil, os.ErrorString("No value property found")}
+
+	switch t {
+		case "uri":
+			return CreateResource(value), nil
+
+		case "bnode":
+			return CreateNode(value), nil
+
+		case "literal":
+			lang, lang_ok := obj["lang"]
+			datatype, datatype_ok := obj["datatype"]
+			if lang_ok {
+				return CreateLiteralWithLanguage(value, lang), nil
+			} else if datatype_ok {
+				return CreateLiteralWithDatatype(value, CreateResource(datatype)), nil
+			} else {
+				return CreateLiteral(value), nil
+			}
+
+		default:
+			return nil, os.ErrorString("Invalid object type")
+	}
+
+	return nil, nil
+}
+
+func (graph *Graph) ReadJSON(reader io.Reader) (err os.Error) {
+	// Yo dawg, I heard you like types, so I put a map in a slice
+	// in a map in a map, so you can parse maps while you parse
+	// maps, while you parse slices with maps in.
+	data := new(map[string]map[string][]map[string]string)
+
+	decoder := json.NewDecoder(reader)
+	err = decoder.Decode(data)
+	if err != nil {return err}
+
+	var subjTerm *Term
+	var predTerm *Term
+	var objTerm *Term
+
+	for subj, props := range *data {
+		if strings.HasPrefix(subj, "_:") {
+			subjTerm = CreateNode(subj[2:])
+		} else {
+			subjTerm = CreateResource(subj)
+		}
+
+		for pred, objs := range props {
+			predTerm = CreateResource(pred)
+
+			for i, obj := range objs {
+				objTerm, err = ParseJSONTerm(obj)
+				if err != nil {return err}
+				graph.AddTriple(subjTerm, predTerm, objTerm)
+			}
+		}
+	}
+	
+	return nil
+}
+
 func (graph *Graph) WriteNTriples(writer io.Writer) (err os.Error) {
 	graph.store.ResetIter()
 
-	var buffer []byte
+	//var buffer []byte
 
 	for {
 		if triple, ok := graph.store.Next(); ok {
