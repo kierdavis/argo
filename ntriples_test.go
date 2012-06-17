@@ -161,3 +161,28 @@ func TestReadErrors(t *testing.T) {
 		}
 	}
 }
+
+
+func BenchmarkRead(b *testing.B) {
+	b.StopTimer()
+	var ntriples bytes.Buffer
+	var triples []*Triple
+
+	for ntriple, triple := range testCases {
+		ntriples.WriteString(ntriple)
+		ntriples.WriteRune('\n')
+		triples = append(triples, triple)
+	}
+	b.StartTimer()
+	for i := 0; i < b.N; i++ {
+		r := NewReader(strings.NewReader(ntriples.String()))
+		
+		count := 0
+		for triple, err := r.Read(); err == nil; triple, err = r.Read() {
+			if triple.Subject != nil {
+				count++
+			}
+		}
+
+	}
+}
