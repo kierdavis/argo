@@ -21,6 +21,7 @@ func init() {
 
 type Term interface {
 	String() string
+	Equal(other Term) bool
 }
 
 type Resource struct {
@@ -31,8 +32,17 @@ func NewResource(uri string) (term Term) {
 	return Term(&Resource{URI: uri})
 }
 
-func (term *Resource) String() (str string) {
+func (term Resource) String() (str string) {
 	return fmt.Sprintf("<%s>", term.URI)
+}
+
+func (term Resource) Equal(other Term) bool {
+
+	if spec, ok := other.(*Resource); ok {
+		return term.URI==spec.URI
+	}
+
+	return false
 }
 
 type Literal struct {
@@ -57,7 +67,7 @@ func NewLiteralWithLanguageAndDatatype(value string, language string, datatype T
 	return Term(&Literal{Value: value, Language: language, Datatype: datatype})
 }
 
-func (term *Literal) String() (str string) {
+func (term Literal) String() (str string) {
 	str = fmt.Sprintf("\"%s\"", term.Value)
 
 	if term.Language != "" {
@@ -68,6 +78,33 @@ func (term *Literal) String() (str string) {
 
 	return str
 }
+
+func (term Literal) Equal(other Term) bool {
+	spec, ok := other.(*Literal)
+	if !ok {
+		return false
+	}
+
+	if term.Value!=spec.Value {
+		return false
+	}
+
+	if term.Language != spec.Language {
+		return false
+	}
+
+	if (term.Datatype == nil && spec.Datatype != nil) || (term.Datatype != nil && spec.Datatype == nil) {
+		return false
+	}
+
+	if term.Datatype != nil && spec.Datatype != nil && !term.Datatype.Equal(spec.Datatype) {
+		return false
+	}
+
+	return true
+}
+
+
 
 type Node struct {
 	ID string
@@ -81,6 +118,15 @@ func NewBlankNode() (term Term) {
 	return NewNode(fmt.Sprintf("b%d", <-newNodeIDChan))
 }
 
-func (term *Node) String() (str string) {
+func (term Node) String() (str string) {
 	return "_:" + term.ID
 }
+
+func (term Node) Equal(other Term) bool {
+	if spec, ok := other.(*Node); ok {
+		return term.ID==spec.ID
+	}
+
+	return false
+}
+
