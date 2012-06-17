@@ -181,7 +181,7 @@ func (store *MySQLStore) Remove(triple *argo.Triple) {
 }
 
 func (store *MySQLStore) RemoveIndex(index int) {
-	stmt, err := store.execute("DELETE FROM %s WHERE ( id = ? )", index)
+	stmt, err := store.execute("DELETE FROM %s WHERE id = ?", index)
 	if err != nil {
 		panic(err)
 	}

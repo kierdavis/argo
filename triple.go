@@ -29,7 +29,7 @@ func NewQuad(subject Term, predicate Term, object Term, context Term) (triple *T
 	}
 }
 
-func (triple *Triple) String() (str string) {
+func (triple Triple) String() (str string) {
 	subj_str := "nil"
 	if triple.Subject != nil {
 		subj_str = triple.Subject.String()
@@ -51,4 +51,12 @@ func (triple *Triple) String() (str string) {
 
 	ctx_str := triple.Context.String()
 	return fmt.Sprintf("%s %s %s %s .", subj_str, pred_str, obj_str, ctx_str)
+}
+
+func (triple Triple) Equal(other *Triple) bool {
+	return triple.Subject.Equal(other.Subject) &&
+		triple.Predicate.Equal(other.Predicate) &&
+		triple.Object.Equal(other.Object) &&
+		((triple.Context == nil && other.Context == nil) || (triple.Context != nil && other.Context != nil && triple.Context.Equal(other.Context)))
+
 }
