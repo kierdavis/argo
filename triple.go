@@ -5,27 +5,27 @@ import (
 )
 
 type Triple struct {
-	Subject		Term
-	Predicate	Term
-	Object		Term
-	Context		Term
+	Subject   Term
+	Predicate Term
+	Object    Term
+	Context   Term
 }
 
 func NewTriple(subject Term, predicate Term, object Term) (triple *Triple) {
 	return &Triple{
-		Subject:	subject,
-		Predicate:	predicate,
-		Object:		object,
-		Context:	nil,
+		Subject:   subject,
+		Predicate: predicate,
+		Object:    object,
+		Context:   nil,
 	}
 }
 
 func NewQuad(subject Term, predicate Term, object Term, context Term) (triple *Triple) {
 	return &Triple{
-		Subject:	subject,
-		Predicate:	predicate,
-		Object:		object,
-		Context:	context,
+		Subject:   subject,
+		Predicate: predicate,
+		Object:    object,
+		Context:   context,
 	}
 }
 

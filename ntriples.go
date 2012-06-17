@@ -7,6 +7,7 @@ import (
 	"strings"
 )
 
+// Whitespace characters.
 var Whitespace = " \t\r\n"
 
 type NTriplesParseError struct {
