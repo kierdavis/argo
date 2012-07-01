@@ -1,0 +1,14 @@
+<rdf:RDF
+    xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+    xmlns:loop="http://kierdavis.com/data/vocab/loop/"
+>
+    <loop:Add rdf:about="http://example.org/add">
+        <rdfs:label>Test program</rdfs:label>
+        <loop:a rdf:datatype="http://www.w3.org/2001/XMLSchema#positiveInteger">3</loop:a>
+        <loop:b rdf:datatype="http://www.w3.org/2001/XMLSchema#float">6.1</loop:b>
+    </loop:Add>
+    
+    <loop:Function rdf:about="http://kierdavis.com/data/vocab/loop/Add">
+        <rdfs:label>Adds two numbers</rdfs:label>
+    </loop:Function>
+</rdf:RDF>

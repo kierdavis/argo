@@ -1,0 +1,5 @@
+func <http://example.org/test>() {
+    rdfs:label "Test program"
+    
+    loop:Add(3, "8.0"^^xsd:float)
+}

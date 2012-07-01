@@ -2,22 +2,12 @@ package argo
 
 import (
 	"fmt"
+	"github.com/kierdavis/goutil"
 )
 
 // Generate thread-safe unique IDs
 
-var newNodeIDChan = make(chan int)
-
-func init() {
-	go func() {
-		i := 1
-
-		for {
-			newNodeIDChan <- i
-			i++
-		}
-	}()
-}
+var newNodeIDs = util.UniqueInts()
 
 type Term interface {
 	String() string
@@ -37,9 +27,8 @@ func (term Resource) String() (str string) {
 }
 
 func (term Resource) Equal(other Term) bool {
-
 	if spec, ok := other.(*Resource); ok {
-		return term.URI==spec.URI
+		return term.URI == spec.URI
 	}
 
 	return false
@@ -85,7 +74,7 @@ func (term Literal) Equal(other Term) bool {
 		return false
 	}
 
-	if term.Value!=spec.Value {
+	if term.Value != spec.Value {
 		return false
 	}
 
@@ -104,29 +93,26 @@ func (term Literal) Equal(other Term) bool {
 	return true
 }
 
-
-
-type Node struct {
+type BlankNode struct {
 	ID string
 }
 
-func NewNode(id string) (term Term) {
-	return Term(&Node{ID: id})
+func NewBlankNode(id string) (term Term) {
+	return Term(&BlankNode{ID: id})
 }
 
-func NewBlankNode() (term Term) {
-	return NewNode(fmt.Sprintf("b%d", <-newNodeIDChan))
+func NewAnonNode() (term Term) {
+	return NewBlankNode(fmt.Sprintf("b%d", <-newNodeIDs))
 }
 
-func (term Node) String() (str string) {
+func (term BlankNode) String() (str string) {
 	return "_:" + term.ID
 }
 
-func (term Node) Equal(other Term) bool {
-	if spec, ok := other.(*Node); ok {
-		return term.ID==spec.ID
+func (term BlankNode) Equal(other Term) bool {
+	if spec, ok := other.(*BlankNode); ok {
+		return term.ID == spec.ID
 	}
 
 	return false
 }
-

@@ -2,17 +2,20 @@ package argo
 
 import ()
 
-// A ListStore is a Store that stores triples in a slice.
+// A ListStore is a Store that stores triples in a slice stored in memory.
 type ListStore struct {
 	triples []*Triple
 }
 
-// Function NewListStore create and returns a new ListStore with the given capacity. The capacity is
-// passed directly to make(), so 0 can be used if you are unsure what to pass.
-func NewListStore(capacity int) (store *ListStore) {
+// Function NewListStore create and returns a new empty ListStore.
+func NewListStore() (store *ListStore) {
 	return &ListStore{
-		triples: make([]*Triple, 0, capacity),
+		triples: make([]*Triple, 0),
 	}
+}
+
+func (store *ListStore) SupportsIndexes() (result bool) {
+	return true
 }
 
 // Function Add adds the given triple to the store and returns its index.
@@ -50,15 +53,44 @@ func (store *ListStore) Num() (n int) {
 // Function IterTriples returns a channel that will yield the triples of the store. The channel will
 // be closed when iteration is completed.
 func (store *ListStore) IterTriples() (ch chan *Triple) {
-	ch1 := make(chan *Triple)
+	ch = make(chan *Triple)
 
 	go func() {
 		for _, triple := range store.triples {
-			ch1 <- triple
+			ch <- triple
 		}
 
-		close(ch1)
+		close(ch)
 	}()
 
-	return ch1
+	return ch
+}
+
+// Function Filter returns a channel that will yield all matching triples of the graph. A nil value
+// passed means that the check for this term is skipped; else the triples returned must have the
+// same terms as the corresponding arguments.
+func (store *ListStore) Filter(subject Term, predicate Term, object Term) (ch chan *Triple) {
+	ch = make(chan *Triple)
+
+	go func() {
+		for _, triple := range store.triples {
+			if subject != nil && subject != triple.Subject {
+				continue
+			}
+
+			if predicate != nil && predicate != triple.Predicate {
+				continue
+			}
+
+			if object != nil && object != triple.Object {
+				continue
+			}
+
+			ch <- triple
+		}
+
+		close(ch)
+	}()
+
+	return ch
 }

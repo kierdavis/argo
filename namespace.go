@@ -18,10 +18,15 @@ var (
 	FOAF = NewNamespace("http://xmlns.com/foaf/0.1/")
 	DC   = NewNamespace("http://purl.org/dc/elements/1.1/")
 	DCT  = NewNamespace("http://purl.org/dc/terms/")
+	XSD  = NewNamespace("http://www.w3.org/2001/XMLSchema#")
 )
 
-// rdf:type
-var A = RDF.Get("type")
+var (
+	A     = RDF.Get("type")
+	First = RDF.Get("first")
+	Rest  = RDF.Get("rest")
+	Nil   = RDF.Get("nil")
+)
 
 // Function NewNamespace creates and returns a new namespace with the given base URI.
 func NewNamespace(base string) (ns Namespace) {

@@ -44,6 +44,7 @@ var (
 	RdfNodeID      = xml.Name{RdfNs, "nodeID"}
 	RdfResource    = xml.Name{RdfNs, "resource"}
 	RdfDatatype    = xml.Name{RdfNs, "datatype"}
+	RdfParseType   = xml.Name{RdfNs, "parseType"}
 
 	XmlLang = xml.Name{"xml", "lang"}
 )
@@ -97,14 +98,14 @@ loop:
 					if attr.Name == RdfAbout {
 						subject = NewResource(attr.Value)
 					} else if attr.Name == RdfNodeID {
-						subject = NewNode(attr.Value)
+						subject = NewBlankNode(attr.Value)
 					} else {
 						extraAttrs = append(extraAttrs, attr)
 					}
 				}
 
 				if subject == nil {
-					subject = NewBlankNode()
+					subject = NewAnonNode()
 				}
 
 				if tok.Name != RdfDescription {
@@ -127,6 +128,7 @@ loop:
 				predicate = Name2Term(tok.Name)
 				language = ""
 				datatype = nil
+				state = statePropertyValue
 
 				for _, attr := range tok.Attr {
 					if attr.Name == RdfResource {
@@ -134,7 +136,7 @@ loop:
 						continue loop
 
 					} else if attr.Name == RdfNodeID {
-						tripleChan <- NewTriple(subject, predicate, NewNode(attr.Value))
+						tripleChan <- NewTriple(subject, predicate, NewBlankNode(attr.Value))
 						continue loop
 
 					} else if attr.Name == RdfDatatype {
@@ -148,8 +150,6 @@ loop:
 						break loop
 					}
 				}
-
-				state = statePropertyValue
 
 			case xml.EndElement: // Must be a description tag (</rdf:Description>)
 				state = stateDescriptions
@@ -198,7 +198,7 @@ func SerializeRDFXML(w io.Writer, tripleChan chan *Triple, errChan chan error) {
 	for subject, triples := range triplesBySubject {
 		t, hasType := types[subject]
 		subjResource, isResource := subject.(*Resource)
-		subjNode, _ := subject.(*Node)
+		subjNode, _ := subject.(*BlankNode)
 
 		var subjStr string
 
@@ -211,7 +211,7 @@ func SerializeRDFXML(w io.Writer, tripleChan chan *Triple, errChan chan error) {
 		var tbase, tname string
 
 		if hasType {
-			tbase, tname = splitPrefix(t.(*Resource).URI)
+			tbase, tname = SplitPrefix(t.(*Resource).URI)
 			_, err = fmt.Fprintf(w, "  <t:%s xmlns:t='%s' %s>\n", tname, tbase, subjStr)
 
 		} else {
@@ -224,7 +224,7 @@ func SerializeRDFXML(w io.Writer, tripleChan chan *Triple, errChan chan error) {
 		}
 
 		for _, triple := range triples {
-			pbase, pname := splitPrefix(triple.Predicate.(*Resource).URI)
+			pbase, pname := SplitPrefix(triple.Predicate.(*Resource).URI)
 
 			_, err = fmt.Fprintf(w, "    <p:%s xmlns:p='%s'", pname, pbase)
 			if err != nil {
@@ -234,7 +234,7 @@ func SerializeRDFXML(w io.Writer, tripleChan chan *Triple, errChan chan error) {
 
 			objResource, isResource := triple.Object.(*Resource)
 			objLiteral, isLiteral := triple.Object.(*Literal)
-			objNode, _ := triple.Object.(*Node)
+			objNode, _ := triple.Object.(*BlankNode)
 
 			if isResource {
 				_, err = fmt.Fprintf(w, " rdf:resource='%s' />\n", objResource.URI)
@@ -283,6 +283,148 @@ func SerializeRDFXML(w io.Writer, tripleChan chan *Triple, errChan chan error) {
 	if err != nil {
 		errChan <- err
 	}
+}
 
-	close(errChan)
+func (graph *Graph) SerializePrettyRDFXML(w io.Writer) (err error) {
+	triplesBySubject := make(map[Term][]*Triple)
+	types := make(map[Term]Term)
+
+	for triple := range graph.IterTriples() {
+		if triple.Predicate == A {
+			_, alreadySet := types[triple.Subject]
+			_, isResource := triple.Object.(*Resource)
+
+			if !alreadySet && isResource {
+				types[triple.Subject] = triple.Object
+				continue
+			}
+		}
+
+		triplesBySubject[triple.Subject] = append(triplesBySubject[triple.Subject], triple)
+	}
+
+	_, err = fmt.Fprintf(w, "<rdf:RDF\n  xmlns:rdf='http://www.w3.org/1999/02/22-rdf-syntax-ns#'\n")
+	if err != nil {
+		return err
+	}
+
+	for uri, prefix := range graph.Prefixes {
+		if prefix != "rdf" {
+			_, err = fmt.Fprintf(w, "  xmlns:%s='%s'\n", prefix, uri)
+		}
+	}
+
+	_, err = fmt.Fprintf(w, ">\n")
+	if err != nil {
+		return err
+	}
+
+	for subject, triples := range triplesBySubject {
+		t, hasType := types[subject]
+		subjResource, isResource := subject.(*Resource)
+		subjNode, _ := subject.(*BlankNode)
+
+		var subjStr string
+
+		if isResource {
+			subjStr = fmt.Sprintf("rdf:about='%s'", subjResource.URI)
+		} else {
+			subjStr = fmt.Sprintf("rdf:nodeID='%s'", subjNode.ID)
+		}
+
+		var tbase, tname, tprefix string
+		var thasPrefix bool
+
+		if hasType {
+			tbase, tname = SplitPrefix(t.(*Resource).URI)
+			tprefix, thasPrefix = graph.Prefixes[tbase]
+
+			if thasPrefix {
+				_, err = fmt.Fprintf(w, "  <%s:%s %s>\n", tprefix, tname, subjStr)
+
+			} else {
+				_, err = fmt.Fprintf(w, "  <t:%s xmlns:t='%s' %s>\n", tname, tbase, subjStr)
+			}
+
+		} else {
+			_, err = fmt.Fprintf(w, "  <rdf:Description %s>\n", subjStr)
+		}
+
+		if err != nil {
+			return err
+		}
+
+		for _, triple := range triples {
+			pbase, pname := SplitPrefix(triple.Predicate.(*Resource).URI)
+			pprefix, phasPrefix := graph.Prefixes[pbase]
+			//fmt.Println(pbase, pname, pprefix, ok, graph.Prefixes)
+			if phasPrefix {
+				_, err = fmt.Fprintf(w, "    <%s:%s", pprefix, pname)
+
+			} else {
+				_, err = fmt.Fprintf(w, "    <p:%s xmlns:p='%s'", pname, pbase)
+			}
+
+			if err != nil {
+				return err
+			}
+
+			objResource, isResource := triple.Object.(*Resource)
+			objLiteral, isLiteral := triple.Object.(*Literal)
+			objNode, _ := triple.Object.(*BlankNode)
+
+			if isResource {
+				_, err = fmt.Fprintf(w, " rdf:resource='%s' />\n", objResource.URI)
+
+			} else if isLiteral {
+				if objLiteral.Language != "" {
+					_, err = fmt.Fprintf(w, " xml:lang='%s'", objLiteral.Language)
+					if err != nil {
+						return err
+					}
+
+				} else if objLiteral.Datatype != nil {
+					_, err = fmt.Fprintf(w, " rdf:datatype='%s'", objLiteral.Datatype.(*Resource).URI)
+					if err != nil {
+						return err
+					}
+				}
+
+				if phasPrefix {
+					_, err = fmt.Fprintf(w, ">%s</%s:%s>\n", objLiteral.Value, pprefix, pname)
+				} else {
+					_, err = fmt.Fprintf(w, ">%s</p:%s>\n", objLiteral.Value, pname)
+				}
+
+			} else {
+				_, err = fmt.Fprintf(w, " rdf:nodeID='%s' />\n", objNode.ID)
+			}
+
+			if err != nil {
+				return err
+			}
+		}
+
+		if hasType {
+			if thasPrefix {
+				_, err = fmt.Fprintf(w, "  </%s:%s>\n", tprefix, tname)
+			} else {
+				_, err = fmt.Fprintf(w, "  </t:%s>\n", tname)
+			}
+
+		} else {
+			_, err = fmt.Fprintf(w, "  </rdf:Description>\n")
+		}
+
+		if err != nil {
+			return err
+		}
+	}
+
+	_, err = fmt.Fprintf(w, "</rdf:RDF>\n")
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
