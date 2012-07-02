@@ -21,6 +21,7 @@ var (
 	XSD  = NewNamespace("http://www.w3.org/2001/XMLSchema#")
 )
 
+// RDF vocab elements that are used internally by the library.
 var (
 	A     = RDF.Get("type")
 	First = RDF.Get("first")
@@ -39,11 +40,11 @@ func NewNamespace(base string) (ns Namespace) {
 // 
 //     ns := argo.NewNamespace("http://www.w3.org/1999/02/22-rdf-syntax-ns#")
 //     term := ns.Get("Seq")
-//     fmt.Println(fmt)
+//     fmt.Println(term.String())
 // 
 // will output:
 // 
-//     http://www.w3.org/1999/02/22-rdf-syntax-ns#Seq
+//     <http://www.w3.org/1999/02/22-rdf-syntax-ns#Seq>
 //
 func (ns Namespace) Get(name string) (term Term) {
 	return NewResource(string(ns) + name)

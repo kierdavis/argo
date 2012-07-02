@@ -14,12 +14,12 @@ func NewListStore() (store *ListStore) {
 	}
 }
 
-// Function Add adds the given triple to the store and returns its index.
+// Method Add adds the given triple to the store and returns its index.
 func (store *ListStore) Add(triple *Triple) {
 	store.triples = append(store.triples, triple)
 }
 
-// Function Remove removes the given triple from the store.
+// Method Remove removes the given triple from the store.
 func (store *ListStore) Remove(triple *Triple) {
 	for i, t := range store.triples {
 		if t == triple {
@@ -29,17 +29,17 @@ func (store *ListStore) Remove(triple *Triple) {
 	}
 }
 
-// Function Clear removes all triples from the store.
+// Method Clear removes all triples from the store.
 func (store *ListStore) Clear() {
 	store.triples = store.triples[:0]
 }
 
-// Function Num returns the number of triples in the store.
+// Method Num returns the number of triples in the store.
 func (store *ListStore) Num() (n int) {
 	return len(store.triples)
 }
 
-// Function IterTriples returns a channel that will yield the triples of the store. The channel will
+// Method IterTriples returns a channel that will yield the triples of the store. The channel will
 // be closed when iteration is completed.
 func (store *ListStore) IterTriples() (ch chan *Triple) {
 	ch = make(chan *Triple)
@@ -55,7 +55,7 @@ func (store *ListStore) IterTriples() (ch chan *Triple) {
 	return ch
 }
 
-// Function Filter returns a channel that will yield all matching triples of the graph. A nil value
+// Method Filter returns a channel that will yield all matching triples of the graph. A nil value
 // passed means that the check for this term is skipped; else the triples returned must have the
 // same terms as the corresponding arguments.
 func (store *ListStore) Filter(subject Term, predicate Term, object Term) (ch chan *Triple) {

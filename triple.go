@@ -4,6 +4,8 @@ import (
 	"fmt"
 )
 
+// A Triple contains a subject, a predicate and an object term. It also contains a context term, but
+// support for contexts is not fully implemented yet.
 type Triple struct {
 	Subject   Term
 	Predicate Term
@@ -11,6 +13,7 @@ type Triple struct {
 	Context   Term
 }
 
+// Function NewTriple returns a new triple with the given subject, predicate and object.
 func NewTriple(subject Term, predicate Term, object Term) (triple *Triple) {
 	return &Triple{
 		Subject:   subject,
@@ -20,6 +23,7 @@ func NewTriple(subject Term, predicate Term, object Term) (triple *Triple) {
 	}
 }
 
+// Function NewQuad returns a new triple with the given subject, predicate, object and context.
 func NewQuad(subject Term, predicate Term, object Term, context Term) (triple *Triple) {
 	return &Triple{
 		Subject:   subject,
@@ -29,6 +33,7 @@ func NewQuad(subject Term, predicate Term, object Term, context Term) (triple *T
 	}
 }
 
+// Method String returns the NTriples representation of this triple.
 func (triple Triple) String() (str string) {
 	subj_str := "nil"
 	if triple.Subject != nil {
@@ -53,6 +58,7 @@ func (triple Triple) String() (str string) {
 	return fmt.Sprintf("%s %s %s %s .", subj_str, pred_str, obj_str, ctx_str)
 }
 
+// Method Equal returns this triple is equivalent to the argument.
 func (triple Triple) Equal(other *Triple) bool {
 	return triple.Subject.Equal(other.Subject) &&
 		triple.Predicate.Equal(other.Predicate) &&

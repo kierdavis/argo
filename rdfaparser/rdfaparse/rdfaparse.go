@@ -14,7 +14,7 @@ func main() {
 	}
 
 	graph := argo.NewGraph(argo.NewListStore())
-	p := rdfaparser.NewRDFAParser(os.Args[1], graph)
+	p := rdfaparser.NewRDFAParser(os.Args[1])
 	err := graph.ParseHTTP(p, os.Args[1], "text/html")
 
 	if err != nil {

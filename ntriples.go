@@ -452,7 +452,7 @@ func (r *NTriplesReader) expectWhitespace() (err error) {
 	return nil
 }
 
-func ParseNTriples(r io.Reader, tripleChan chan *Triple, errChan chan error) {
+func ParseNTriples(r io.Reader, tripleChan chan *Triple, errChan chan error, prefixes map[string]string) {
 	defer close(tripleChan)
 	defer close(errChan)
 
@@ -472,7 +472,7 @@ func ParseNTriples(r io.Reader, tripleChan chan *Triple, errChan chan error) {
 	}
 }
 
-func SerializeNTriples(w io.Writer, tripleChan chan *Triple, errChan chan error) {
+func SerializeNTriples(w io.Writer, tripleChan chan *Triple, errChan chan error, prefixes map[string]string) {
 	defer close(errChan)
 
 	for triple := range tripleChan {

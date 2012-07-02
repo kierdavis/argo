@@ -23,11 +23,7 @@ func NewRedisStore(c redis.Configuration) (store *RedisStore) {
 	}
 }
 
-func (store *RedisStore) SupportsIndexes() (result bool) {
-	return false
-}
-
-func (store *RedisStore) Add(triple *argo.Triple) (index int) {
+func (store *RedisStore) Add(triple *argo.Triple) {
 	s := HashTerm(triple.Subject)
 	p := HashTerm(triple.Predicate)
 	o := HashTerm(triple.Object)
@@ -38,17 +34,6 @@ func (store *RedisStore) Add(triple *argo.Triple) (index int) {
 		mc.Command("SADD", "po"+p+o, triple.Subject.String())
 		mc.Command("RPUSH", "triples", triple.String())
 	})
-
-	return 0
-
-	/*
-		index, err := result.ResultSetAt(3).ValueAsInt()
-		if err != nil {
-			panic(err)
-		}
-
-		return index
-	*/
 }
 
 func (store *RedisStore) Remove(triple *argo.Triple) {
@@ -62,10 +47,6 @@ func (store *RedisStore) Remove(triple *argo.Triple) {
 		mc.Command("SREM", "po"+p+o, triple.Subject.String())
 		mc.Command("LREM", "triples", 0, triple.String())
 	})
-}
-
-func (store *RedisStore) RemoveIndex(index int) {
-	panic("not implemented!")
 }
 
 func (store *RedisStore) Clear() {

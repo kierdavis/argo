@@ -9,34 +9,34 @@ import (
 
 // A Parser is a function that can parse a particular representation of RDF and stream the triples
 // on a channel.
-type Parser func(io.Reader, chan *Triple, chan error)
+type Parser func(io.Reader, chan *Triple, chan error, map[string]string)
 
 // A Serializer is a function that recieves triples sent along a channel and serializes them into a
 // particular representation of RDF.
-type Serializer func(io.Writer, chan *Triple, chan error)
+type Serializer func(io.Writer, chan *Triple, chan error, map[string]string)
 
 // A Store is a container for RDF triples. For example, it could be backed by a flat list or a
 // relational database.
 type Store interface {
-	// Function Add adds the given triple to the store and returns its index.
+	// Method Add should add the given triple to the store.
 	Add(*Triple)
 
-	// Function Remove removes the given triple from the store.
+	// Method Remove should remove the given triple from the store.
 	Remove(*Triple)
 
-	// Function Clear removes all triples from the store.
+	// Method Clear should remove all triples from the store.
 	Clear()
 
-	// Function Num returns the number of triples in the store.
+	// Method Num should return the number of triples in the store.
 	Num() int
 
-	// Function IterTriples returns a channel that will yield the triples of the store. The channel
-	// will be closed when iteration is completed.
+	// Method IterTriples should return a channel that will yield the triples of the store. The
+	// channel should be closed by this method when iteration is completed.
 	IterTriples() chan *Triple
 
-	// Function Filter returns a channel that will yield all matching triples of the graph. A nil
-	// value passed means that the check for this term is skipped; else the triples returned must
-	// have the same terms as the corresponding arguments.
+	// Method Filter should return a channel that will yield all matching triples of the graph. A
+	// nil value passed means that the check for this term is skipped; else the triples returned
+	// must have the same terms as the corresponding arguments.
 	Filter(Term, Term, Term) chan *Triple
 }
 

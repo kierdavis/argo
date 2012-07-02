@@ -29,7 +29,7 @@ func expandURI(s string, vocabBase string, prefixMap map[string]string) (r strin
 	return prefixMap[a] + b
 }
 
-func traverseNode(node *h5.Node, tripleChan chan *argo.Triple, subject argo.Term, vocabBase string, prefixMap map[string]string, graph *argo.Graph) {
+func traverseNode(node *h5.Node, tripleChan chan *argo.Triple, subject argo.Term, vocabBase string, prefixMap map[string]string, nsMap map[string]string) {
 	if node.Type == h5.ElementNode {
 		for _, attr := range node.Attr {
 			if strings.HasPrefix(attr.Name, "xmlns:") {
@@ -37,10 +37,7 @@ func traverseNode(node *h5.Node, tripleChan chan *argo.Triple, subject argo.Term
 				uri := attr.Value
 
 				prefixMap[prefix] = uri
-
-				if graph != nil {
-					graph.Bind(uri, prefix)
-				}
+				nsMap[uri] = prefix
 			}
 		}
 
@@ -118,12 +115,12 @@ func traverseNode(node *h5.Node, tripleChan chan *argo.Triple, subject argo.Term
 	}
 
 	for _, child := range node.Children {
-		traverseNode(child, tripleChan, subject, vocabBase, prefixMap, graph)
+		traverseNode(child, tripleChan, subject, vocabBase, prefixMap, nsMap)
 	}
 }
 
-func NewRDFAParser(documentURI string, graph *argo.Graph) (p argo.Parser) {
-	return func(r io.Reader, tripleChan chan *argo.Triple, errChan chan error) {
+func NewRDFAParser(documentURI string) (p argo.Parser) {
+	return func(r io.Reader, tripleChan chan *argo.Triple, errChan chan error, prefixes map[string]string) {
 		defer close(tripleChan)
 		defer close(errChan)
 
@@ -152,6 +149,6 @@ func NewRDFAParser(documentURI string, graph *argo.Graph) (p argo.Parser) {
 			return
 		}
 
-		traverseNode(p.Tree(), tripleChan, argo.NewResource(documentURI), "", make(map[string]string), graph)
+		traverseNode(p.Tree(), tripleChan, argo.NewResource(documentURI), "", make(map[string]string), prefixes)
 	}
 }

@@ -1,25 +1,30 @@
 %{
-    package main
+    package squirtle
     
     import (
         "bufio"
         "fmt"
         "github.com/kierdavis/argo"
         "io"
-        "os"
         "strings"
+        "sync"
         "unicode"
         "unicode/utf8"
     )
     
-    type StackEntry struct {
+    type stackEntry struct {
         Subject argo.Term
         NextItem int
     }
     
-    var graph = argo.NewGraph(argo.NewListStore())
-    var names = make(map[string]string)
-    var stack = make([]StackEntry, 0)
+    var parserMutex sync.Mutex
+    
+    var tripleChan chan *argo.Triple
+    var errChan chan error
+    var prefixMap map[string]string
+    
+    var names map[string]string
+    var stack []stackEntry
 %}
 
 %union{
@@ -29,8 +34,8 @@
 
 %token <s> A AS BNODE DT EOF IDENTIFIER IRIREF NAME STRING
 
-%type <s> qname raw_iriref slash_separated_name slashed_extension slashed_extensions
-%type <t> bnode description iriref literal object predicate subject
+%type <s> identifier qname raw_iriref slash_separated_name slashed_extension slashed_extensions
+%type <t> bnode description iriref literal object predicate raw_subject subject
 
 %%
 
@@ -42,13 +47,13 @@ statements  : statements statement
 statement   : name_decl
             | description
 
-name_decl   : NAME raw_iriref AS IDENTIFIER                 {names[$4] = $2; graph.Bind($2, $4)}
+name_decl   : NAME raw_iriref AS IDENTIFIER                 {names[$4] = $2; prefixMap[$2] = $4}
 
 description : subject description_body                      {$$ = $1; stack = stack[:len(stack) - 1]}
 
 description_body    : '{' predicate_object_list '}'
 
-subject : raw_subject                                       {$$ = $1; stack = append(stack, StackEntry{$$, 1})}
+subject : raw_subject                                       {$$ = $1; stack = append(stack, stackEntry{$$, 1})}
 
 raw_subject : iriref                                        {$$ = $1}
             | bnode                                         {$$ = $1}
@@ -57,7 +62,7 @@ raw_subject : iriref                                        {$$ = $1}
 predicate_object_list   : predicate_object_list predicate_object    
                         | predicate_object
 
-predicate_object    : predicate object                      {graph.AddTriple(stack[len(stack) - 1].Subject, $1, $2)}
+predicate_object    : predicate object                      {tripleChan <- argo.NewTriple(stack[len(stack) - 1].Subject, $1, $2)}
 
 predicate   : iriref                                        {$$ = $1}
             | A                                             {$$ = argo.A}
@@ -81,14 +86,18 @@ raw_iriref  : IRIREF                                        {$$ = $1}
             | slash_separated_name                          {$$ = $1}
             | IDENTIFIER                                    {$$ = names[$1]}
 
-qname   : IDENTIFIER ':' IDENTIFIER                         {$$ = addHash(names[$1]) + $3}
+qname   : IDENTIFIER ':' identifier                         {$$ = addHash(names[$1]) + $3}
 
-slash_separated_name    : IDENTIFIER slashed_extensions     {$$ = stripSlash($1) + $2}
+slash_separated_name    : IDENTIFIER slashed_extensions     {$$ = stripSlash(names[$1]) + $2}
 
 slashed_extensions  : slashed_extensions slashed_extension  {$$ = $1 + $2}
                     | slashed_extension                     {$$ = $1}
 
-slashed_extension   : '/' IDENTIFIER                        {$$ = "/" + $2}
+slashed_extension   : '/' identifier                        {$$ = "/" + $2}
+
+identifier  : IDENTIFIER                                    {$$ = $1}
+            | AS                                            {$$ = $1}
+            | NAME                                          {$$ = $1}
 
 %%
 
@@ -110,48 +119,49 @@ func stripSlash(s string) (r string) {
     return s
 }
 
-type Lexer struct {
+type lexer struct {
     input *bufio.Reader
     currentToken []rune
     currentTokenLen int
     lastTokenLen int
+    lastColumn int
     lineno int
     column int
 }
 
-func NewLexer(input io.Reader) (lexer *Lexer) {
-    lexer = &Lexer{
+func newLexer(input io.Reader) (ll *lexer) {
+    ll = &lexer{
         input: bufio.NewReader(input),
         lineno: 1,
         column: 1,
     }
     
-    return lexer
+    return ll
 }
 
-func (lexer *Lexer) Error(s string) {
-    fmt.Fprintf(os.Stderr, "Syntax error: %s (at line %d col %d)\n", s, lexer.lineno, lexer.column)
-    panic("Exiting due to error")
+func (ll *lexer) Error(s string) {
+    errChan <- fmt.Errorf("Syntax error: %s (at line %d col %d)", s, ll.lineno, ll.column)
+    panic("foobar")
 }
 
-func (lexer *Lexer) Lex(lval *yySymType) (t int) {
-    lexer.AcceptRun(unicode.IsSpace)
-    lexer.Discard()
+func (ll *lexer) Lex(lval *yySymType) (t int) {
+    ll.AcceptRun(unicode.IsSpace)
+    ll.Discard()
     
-    r := lexer.Next()
+    r := ll.Next()
     
     switch {
     case r == '_':
-        if lexer.Accept(':') {
-            lexer.Discard()
+        if ll.Accept(':') {
+            ll.Discard()
             return BNODE
         }
         
         fallthrough
     
     case unicode.IsLetter(r):
-        lexer.AcceptRun(func(r rune) bool {return unicode.IsLetter(r) || unicode.IsDigit(r) || r == '_' || r == '-'})
-        lval.s = lexer.GetToken()
+        ll.AcceptRun(func(r rune) bool {return unicode.IsLetter(r) || unicode.IsDigit(r) || r == '_' || r == '-'})
+        lval.s = ll.GetToken()
         
         switch strings.ToLower(lval.s) {
         case "a":
@@ -165,120 +175,146 @@ func (lexer *Lexer) Lex(lval *yySymType) (t int) {
         return IDENTIFIER
     
     case r == '<':
-        lexer.Discard()
+        ll.Discard()
         
-        lexer.AcceptRun(func(r rune) bool {return r != '>'})
-        lval.s = lexer.GetToken()
+        ll.AcceptRun(func(r rune) bool {return r != '>'})
+        lval.s = ll.GetToken()
         
-        lexer.Next()
-        lexer.Discard()
+        ll.Next()
+        ll.Discard()
         
         return IRIREF
     
     case r == '"':
-        lexer.Discard()
+        ll.Discard()
         
-        lexer.AcceptRun(func(r rune) bool {return r != '"'})
-        lval.s = lexer.GetToken()
+        ll.AcceptRun(func(r rune) bool {return r != '"'})
+        lval.s = ll.GetToken()
         
-        lexer.Next()
-        lexer.Discard()
+        ll.Next()
+        ll.Discard()
         
         return STRING
     
     case r == '^':
-        if lexer.Accept('^') {
-            lexer.Discard()
+        if ll.Accept('^') {
+            ll.Discard()
             return DT
         }
         
-        lexer.Discard()
+        ll.Discard()
         return '^'
     }
     
-    lexer.Discard()
+    ll.Discard()
     return int(r)
 }
 
-func (lexer *Lexer) Next() (r rune) {
-    r, n, err := lexer.input.ReadRune()
+func (ll *lexer) Next() (r rune) {
+    r, n, err := ll.input.ReadRune()
     if err != nil {
         if err == io.EOF {
             return EOF
         }
         
-        lexer.Error(err.Error())
+        ll.Error(err.Error())
     }
     
-    lexer.currentToken = append(lexer.currentToken, r)
-    lexer.currentTokenLen += n
-    lexer.lastTokenLen = n
+    ll.currentToken = append(ll.currentToken, r)
+    ll.currentTokenLen += n
+    ll.lastTokenLen = n
+    ll.lastColumn = ll.column
     
     if r == '\n' {
-        lexer.lineno++
-        lexer.column = 1
+        ll.lineno++
+        ll.column = 1
     } else {
-        lexer.column++
+        ll.column++
     }
     
     return r
 }
 
-func (lexer *Lexer) Back() {
-    err := lexer.input.UnreadRune()
+func (ll *lexer) Back() {
+    err := ll.input.UnreadRune()
     if err == nil {
-        lexer.currentToken = lexer.currentToken[:len(lexer.currentToken)-1]
-        lexer.currentTokenLen -= lexer.lastTokenLen
-        lexer.column--
+        if ll.currentToken[len(ll.currentToken)-1] == '\n' {
+            ll.lineno--
+            ll.column = ll.lastColumn
+        
+        } else {
+            ll.column--
+        }
+        
+        ll.currentToken = ll.currentToken[:len(ll.currentToken)-1]
+        ll.currentTokenLen -= ll.lastTokenLen
     }
 }
 
-func (lexer *Lexer) Peek() (r rune) {
-    r = lexer.Next()
-    lexer.Back()
+func (ll *lexer) Peek() (r rune) {
+    r = ll.Next()
+    ll.Back()
     return r
 }
 
-func (lexer *Lexer) Accept(r rune) (ok bool) {
-    if lexer.Next() == r {
+func (ll *lexer) Accept(r rune) (ok bool) {
+    if ll.Next() == r {
         return true
     }
     
-    lexer.Back()
+    ll.Back()
     return false
 }
 
-func (lexer *Lexer) AcceptRun(f func(rune) bool) {
-    for f(lexer.Next()) {}
+func (ll *lexer) AcceptRun(f func(rune) bool) {
+    for f(ll.Next()) {}
     
-    lexer.Back()
+    ll.Back()
 }
 
-func (lexer *Lexer) GetToken() (s string) {
-    buf := make([]byte, lexer.currentTokenLen)
+func (ll *lexer) GetToken() (s string) {
+    buf := make([]byte, ll.currentTokenLen)
     pos := 0
     
-    for _, r := range lexer.currentToken {
+    for _, r := range ll.currentToken {
         pos += utf8.EncodeRune(buf[pos:], r)
     }
     
-    lexer.Discard()
+    ll.Discard()
     return string(buf)
 }
 
-func (lexer *Lexer) Discard() {
-    lexer.currentToken = nil
-    lexer.currentTokenLen = 0
+func (ll *lexer) Discard() {
+    ll.currentToken = nil
+    ll.currentTokenLen = 0
 }
 
-func main() {
-    f, err := os.Open(os.Args[1])
-    if err != nil {
-        panic(err)
-    }
-    defer f.Close()
+func ParseSquirtle(r io.Reader, tripleChan_ chan *argo.Triple, errChan_ chan error, prefixMap_ map[string]string) {
+    parserMutex.Lock()
+    defer parserMutex.Unlock()
     
-    yyParse(NewLexer(f))
+    defer func() {
+        if err := recover(); err != nil {
+            if err != "foobar" {
+                panic(err)
+            }
+        }
+    }()
     
-    graph.Serialize(argo.SerializeNTriples, os.Stdout)
+    defer close(tripleChan_)
+    defer close(errChan_)
+    
+    tripleChan = tripleChan_
+    errChan = errChan_
+    prefixMap = prefixMap_
+    names = make(map[string]string)
+    stack = make([]stackEntry, 0)
+    
+    yyParse(newLexer(r))
+    
+    tripleChan = nil
+    errChan = nil
+    prefixMap = nil
+    names = nil
+    stack = nil
 }
