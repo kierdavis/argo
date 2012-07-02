@@ -110,6 +110,10 @@ produce better-looking output:
 
 ## Searching
 
+Because Go implements channels natively, it is easy to use them as iterators. Therefore, most of the graph searching methods return a channel that yields successive results from a goroutine. The channel will be automatically closed by the goroutine when the end of the result set is reached, so it is possible to use a `for ... range` construction on it. These channels shall be referred to as *iterators* for the re
+
+An iterator 
+
 ## Streaming
 
 [argo-doc]:                         http://go.pkgdoc.org/github.com/kierdavis/argo
