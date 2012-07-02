@@ -1,4 +1,5 @@
-// Package argo is an RDF manipulation, parsing and serialisation library.
+// Package argo is an RDF manipulation, parsing and serialisation library. See
+// https://github.com/kierdavis/argo for documentation and usage.
 package argo
 
 import (
@@ -17,18 +18,11 @@ type Serializer func(io.Writer, chan *Triple, chan error)
 // A Store is a container for RDF triples. For example, it could be backed by a flat list or a
 // relational database.
 type Store interface {
-	// Function SupportsIndexes return whether the RemoveIndex method is implemented and the Add
-	// method will return a valid index.
-	SupportsIndexes() bool
-
 	// Function Add adds the given triple to the store and returns its index.
-	Add(*Triple) int
+	Add(*Triple)
 
 	// Function Remove removes the given triple from the store.
 	Remove(*Triple)
-
-	// Function Remove removes the triple with the given index from the store.
-	RemoveIndex(int)
 
 	// Function Clear removes all triples from the store.
 	Clear()

@@ -14,30 +14,19 @@ func NewListStore() (store *ListStore) {
 	}
 }
 
-func (store *ListStore) SupportsIndexes() (result bool) {
-	return true
-}
-
 // Function Add adds the given triple to the store and returns its index.
-func (store *ListStore) Add(triple *Triple) (index int) {
-	index = len(store.triples)
+func (store *ListStore) Add(triple *Triple) {
 	store.triples = append(store.triples, triple)
-	return index
 }
 
 // Function Remove removes the given triple from the store.
 func (store *ListStore) Remove(triple *Triple) {
 	for i, t := range store.triples {
 		if t == triple {
-			store.RemoveIndex(i)
+			store.triples = append(store.triples[:i], store.triples[i+1:]...)
 			return
 		}
 	}
-}
-
-// Function RemoveIndex removes the triple with the given index from the store.
-func (store *ListStore) RemoveIndex(index int) {
-	store.triples = append(store.triples[:index], store.triples[index+1:]...)
 }
 
 // Function Clear removes all triples from the store.

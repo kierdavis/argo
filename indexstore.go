@@ -59,17 +59,11 @@ func (store *IndexStore) storePredicate(subjIdx subjectIndex, predicate Term, ob
 	subjIdx[key] = objList
 }
 
-func (store *IndexStore) SupportsIndexes() (result bool) {
-	return false
-}
-
-func (store *IndexStore) Add(triple *Triple) (index int) {
+func (store *IndexStore) Add(triple *Triple) {
 	subjIdx := store.lookupSubject(triple.Subject)
 	objList := store.lookupPredicate(subjIdx, triple.Predicate)
 
 	store.storePredicate(subjIdx, triple.Predicate, append(objList, triple.Object))
-
-	return 0
 }
 
 func (store *IndexStore) Remove(triple *Triple) {
@@ -82,10 +76,6 @@ func (store *IndexStore) Remove(triple *Triple) {
 			break
 		}
 	}
-}
-
-func (store *IndexStore) RemoveIndex(index int) {
-	panic("not implemented!")
 }
 
 func (store *IndexStore) Clear() {
