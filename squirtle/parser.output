@@ -201,9 +201,10 @@ state 22
 state 23
 	qname:  IDENTIFIER :.identifier 
 
-	AS  shift 36
+	A  shift 36
+	AS  shift 37
 	IDENTIFIER  shift 35
-	NAME  shift 37
+	NAME  shift 38
 	.  error
 
 	identifier  goto 34
@@ -215,7 +216,7 @@ state 24
 	/  shift 26
 	.  reduce 33 (src line 91)
 
-	slashed_extension  goto 38
+	slashed_extension  goto 39
 
 state 25
 	slashed_extensions:  slashed_extension.    (35)
@@ -226,17 +227,18 @@ state 25
 state 26
 	slashed_extension:  /.identifier 
 
-	AS  shift 36
+	A  shift 36
+	AS  shift 37
 	IDENTIFIER  shift 35
-	NAME  shift 37
+	NAME  shift 38
 	.  error
 
-	identifier  goto 39
+	identifier  goto 40
 
 state 27
 	name_decl:  NAME raw_iriref AS.IDENTIFIER 
 
-	IDENTIFIER  shift 40
+	IDENTIFIER  shift 41
 	.  error
 
 
@@ -247,7 +249,7 @@ state 28
 	A  shift 32
 	IDENTIFIER  shift 16
 	IRIREF  shift 13
-	}  shift 41
+	}  shift 42
 	*  shift 33
 	.  error
 
@@ -256,7 +258,7 @@ state 28
 	slash_separated_name  goto 15
 	iriref  goto 31
 	predicate  goto 30
-	predicate_object  goto 42
+	predicate_object  goto 43
 
 state 29
 	predicate_object_list:  predicate_object.    (14)
@@ -271,17 +273,17 @@ state 30
 	BNODE  shift 12
 	IDENTIFIER  shift 16
 	IRIREF  shift 13
-	STRING  shift 48
+	STRING  shift 49
 	.  reduce 12 (src line 60)
 
 	qname  goto 14
 	raw_iriref  goto 11
 	slash_separated_name  goto 15
-	bnode  goto 44
-	description  goto 47
-	iriref  goto 46
-	literal  goto 45
-	object  goto 43
+	bnode  goto 45
+	description  goto 48
+	iriref  goto 47
+	literal  goto 46
+	object  goto 44
 	raw_subject  goto 8
 	subject  goto 7
 
@@ -316,54 +318,60 @@ state 35
 
 
 state 36
-	identifier:  AS.    (38)
+	identifier:  A.    (38)
 
 	.  reduce 38 (src line 99)
 
 
 state 37
-	identifier:  NAME.    (39)
+	identifier:  AS.    (39)
 
 	.  reduce 39 (src line 100)
 
 
 state 38
+	identifier:  NAME.    (40)
+
+	.  reduce 40 (src line 101)
+
+
+state 39
 	slashed_extensions:  slashed_extensions slashed_extension.    (34)
 
 	.  reduce 34 (src line 93)
 
 
-state 39
+state 40
 	slashed_extension:  / identifier.    (36)
 
 	.  reduce 36 (src line 96)
 
 
-state 40
+state 41
 	name_decl:  NAME raw_iriref AS IDENTIFIER.    (6)
 
 	.  reduce 6 (src line 50)
 
 
-state 41
+state 42
 	description_body:  { predicate_object_list }.    (8)
 
 	.  reduce 8 (src line 54)
 
 
-state 42
+state 43
 	predicate_object_list:  predicate_object_list predicate_object.    (13)
 
 	.  reduce 13 (src line 62)
 
 
-state 43
+state 44
 	predicate_object:  predicate object.    (15)
 
 	.  reduce 15 (src line 65)
 
 
-state 44
+state 45
 	raw_subject:  bnode.    (11)
 	object:  bnode.    (19)
 
@@ -371,13 +379,13 @@ state 44
 	.  reduce 19 (src line 71)
 
 
-state 45
+state 46
 	object:  literal.    (20)
 
 	.  reduce 20 (src line 72)
 
 
-state 46
+state 47
 	raw_subject:  iriref.    (10)
 	object:  iriref.    (21)
 
@@ -385,30 +393,30 @@ state 46
 	.  reduce 21 (src line 73)
 
 
-state 47
+state 48
 	object:  description.    (22)
 
 	.  reduce 22 (src line 74)
 
 
-state 48
+state 49
 	literal:  STRING.    (24)
 	literal:  STRING.@ IDENTIFIER 
 	literal:  STRING.DT iriref 
 
-	DT  shift 50
-	@  shift 49
+	DT  shift 51
+	@  shift 50
 	.  reduce 24 (src line 78)
 
 
-state 49
+state 50
 	literal:  STRING @.IDENTIFIER 
 
-	IDENTIFIER  shift 51
+	IDENTIFIER  shift 52
 	.  error
 
 
-state 50
+state 51
 	literal:  STRING DT.iriref 
 
 	IDENTIFIER  shift 16
@@ -418,29 +426,29 @@ state 50
 	qname  goto 14
 	raw_iriref  goto 11
 	slash_separated_name  goto 15
-	iriref  goto 52
+	iriref  goto 53
 
-state 51
+state 52
 	literal:  STRING @ IDENTIFIER.    (25)
 
 	.  reduce 25 (src line 79)
 
 
-state 52
+state 53
 	literal:  STRING DT iriref.    (26)
 
 	.  reduce 26 (src line 80)
 
 
 18 terminals, 22 nonterminals
-40 grammar rules, 53/2000 states
+41 grammar rules, 54/2000 states
 0 shift/reduce, 0 reduce/reduce conflicts reported
 71 working sets used
 memory: parser 74/30000
-22 extra closures
-42 shift entries, 3 exceptions
+23 extra closures
+44 shift entries, 3 exceptions
 32 goto entries
 26 entries saved by goto default
-Optimizer space used: output 69/30000
-69 table entries, 0 zero
-maximum spread: 18, maximum offset: 50
+Optimizer space used: output 70/30000
+70 table entries, 0 zero
+maximum spread: 18, maximum offset: 51

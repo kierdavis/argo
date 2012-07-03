@@ -96,6 +96,7 @@ slashed_extensions  : slashed_extensions slashed_extension  {$$ = $1 + $2}
 slashed_extension   : '/' identifier                        {$$ = "/" + $2}
 
 identifier  : IDENTIFIER                                    {$$ = $1}
+            | A                                             {$$ = $1}
             | AS                                            {$$ = $1}
             | NAME                                          {$$ = $1}
 

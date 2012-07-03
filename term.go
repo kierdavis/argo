@@ -2,10 +2,8 @@ package argo
 
 import (
 	"fmt"
-	"github.com/kierdavis/goutil"
+	"math/rand"
 )
-
-var newNodeIDs = util.UniqueInts()
 
 // A Term is the value of a subject, predicate or object i.e. a IRI reference, blank node or
 // literal.
@@ -120,11 +118,9 @@ func NewBlankNode(id string) (term Term) {
 	return Term(&BlankNode{ID: id})
 }
 
-// Function NewAnonNode returns a new blank node with an automatically generated ID of the form
-// 'bN', where N is a positive integer. The IDs generated are guaranteed to be unique across a
-// single run of the program; however they are not unique between separate runs.
+// Function NewAnonNode returns a new blank node with a pseudo-randomly generated ID.
 func NewAnonNode() (term Term) {
-	return NewBlankNode(fmt.Sprintf("b%d", <-newNodeIDs))
+	return Term(&BlankNode{ID: fmt.Sprintf("anon%016x", rand.Int63())})
 }
 
 // Method String returns the NTriples representation of the blank node.
