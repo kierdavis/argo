@@ -1,3 +1,22 @@
+/*
+	Copyright (c) 2012 Kier Davis
+
+	Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+	associated documentation files (the "Software"), to deal in the Software without restriction,
+	including without limitation the rights to use, copy, modify, merge, publish, distribute,
+	sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
+	furnished to do so, subject to the following conditions:
+
+	The above copyright notice and this permission notice shall be included in all copies or substantial
+	portions of the Software.
+
+	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
+	NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+	NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES
+	OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+	CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*/
+
 package argo
 
 import (
@@ -59,11 +78,6 @@ func (graph *Graph) AddTriple(subject Term, predicate Term, object Term) {
 	graph.Add(NewTriple(subject, predicate, object))
 }
 
-// Method AddQuad creates a quad from the arguments and adds it to the graph.
-func (graph *Graph) AddQuad(subject Term, predicate Term, object Term, context Term) {
-	graph.Add(NewQuad(subject, predicate, object, context))
-}
-
 // Method EncodeContainer returns a channel. Every value sent on the channel will be added to a
 // container with the given subject. The channel should be closed when finished with. A type is not
 // added to the subject automatically.
@@ -120,11 +134,6 @@ func (graph *Graph) Remove(triple *Triple) {
 // Method RemoveTriple removes the given triple from the graph, if it exists.
 func (graph *Graph) RemoveTriple(subject Term, predicate Term, object Term) {
 	graph.Remove(NewTriple(subject, predicate, object))
-}
-
-// Method RemoveQuad removes the given quad from the graph, if it exists.
-func (graph *Graph) RemoveQuad(subject Term, predicate Term, object Term, context Term) {
-	graph.Remove(NewQuad(subject, predicate, object, context))
 }
 
 // Method Clear clears the graph.
@@ -297,6 +306,7 @@ func (graph *Graph) ParseFile(parser Parser, filename string) (err error) {
 // * NTriples: text/plain
 // * Turtle: text/turtle
 // * Notation3: text/n3
+// * Squitle: text/x-squirtle
 //
 func (graph *Graph) ParseHTTP(parser Parser, url string, acceptMIMEType string) (err error) {
 	req, err := http.NewRequest("GET", url, nil)

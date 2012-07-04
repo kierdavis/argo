@@ -1,3 +1,22 @@
+/*
+	Copyright (c) 2012 Kier Davis
+
+	Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+	associated documentation files (the "Software"), to deal in the Software without restriction,
+	including without limitation the rights to use, copy, modify, merge, publish, distribute,
+	sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
+	furnished to do so, subject to the following conditions:
+
+	The above copyright notice and this permission notice shall be included in all copies or substantial
+	portions of the Software.
+
+	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
+	NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+	NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES
+	OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+	CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*/
+
 package argo
 
 import (
@@ -54,11 +73,11 @@ var testCases = map[string]*Triple{
 
 	`<http://example.org/resource30> <http://example.org/property> "chat"@fr .`: NewTriple(NewResource("http://example.org/resource30"),
 		NewResource("http://example.org/property"),
-		NewLiteralWithLanguage("chat","fr")),
+		NewLiteralWithLanguage("chat", "fr")),
 
 	`<http://example.org/resource31> <http://example.org/property> "chat"@en .`: NewTriple(NewResource("http://example.org/resource31"),
 		NewResource("http://example.org/property"),
-		NewLiteralWithLanguage("chat","en")),
+		NewLiteralWithLanguage("chat", "en")),
 
 	"# this is a comment \n<http://example.org/resource1> <http://example.org/property> <http://example.org/resource2> .": NewTriple(NewResource("http://example.org/resource1"),
 		NewResource("http://example.org/property"),
@@ -109,8 +128,7 @@ func TestRead(t *testing.T) {
 
 		if triple == nil {
 			t.Errorf("Expected %s but got nil triple", *expected)
-		} 
-
+		}
 
 		if !triple.Equal(expected) {
 			t.Errorf("Expected %#v but got %#v", expected, triple)
@@ -162,7 +180,6 @@ func TestReadErrors(t *testing.T) {
 	}
 }
 
-
 func BenchmarkRead(b *testing.B) {
 	b.StopTimer()
 	var ntriples bytes.Buffer
@@ -176,7 +193,7 @@ func BenchmarkRead(b *testing.B) {
 	b.StartTimer()
 	for i := 0; i < b.N; i++ {
 		r := NewReader(strings.NewReader(ntriples.String()))
-		
+
 		count := 0
 		for triple, err := r.Read(); err == nil; triple, err = r.Read() {
 			if triple.Subject != nil {
