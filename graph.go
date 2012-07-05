@@ -42,8 +42,10 @@ type Graph struct {
 // Function NewGraph creates and returns a new graph.
 func NewGraph(store Store) (graph *Graph) {
 	return &Graph{
-		Store:    store,
-		Prefixes: map[string]string{"http://www.w3.org/1999/02/22-rdf-syntax-ns#": "rdf"},
+		Store: store,
+		Prefixes: map[string]string{
+			"http://www.w3.org/1999/02/22-rdf-syntax-ns#": "rdf",
+		},
 	}
 }
 
@@ -306,7 +308,7 @@ func (graph *Graph) ParseFile(parser Parser, filename string) (err error) {
 // * NTriples: text/plain
 // * Turtle: text/turtle
 // * Notation3: text/n3
-// * Squitle: text/x-squirtle
+// * Squirtle: text/x-squirtle
 //
 func (graph *Graph) ParseHTTP(parser Parser, url string, acceptMIMEType string) (err error) {
 	req, err := http.NewRequest("GET", url, nil)

@@ -43,11 +43,6 @@ var FormatNames = []string{
 	"squirtle",
 }
 
-var (
-	infoStyle = ansi.Attribute{FG: ansi.Blue}
-	errStyle  = ansi.Attribute{FG: ansi.Red, Attr: ansi.Bold}
-)
-
 var StdoutLock sync.Mutex
 
 type Args struct {
@@ -149,7 +144,7 @@ func read(output chan *argo.Triple, errorOutput chan error, prefixMap map[string
 
 			req.Header.Add("Accept", mimetype)
 
-			msg(infoStyle, "Fetching '%s'...\n", url)
+			msg(ansi.Blue, "Fetching '%s'...\n", url)
 			resp, err := http.DefaultClient.Do(req)
 			if err != nil {
 				errorOutput <- fmt.Errorf("Error when fetching '%s': %s", url, err.Error())
@@ -157,7 +152,7 @@ func read(output chan *argo.Triple, errorOutput chan error, prefixMap map[string
 			}
 			defer resp.Body.Close()
 
-			msg(infoStyle, "Parsing '%s'...\n", url)
+			msg(ansi.Blue, "Parsing '%s'...\n", url)
 			tripleChan := make(chan *argo.Triple)
 			errChan := make(chan error)
 			go parser(resp.Body, tripleChan, errChan, prefixMap)
@@ -174,7 +169,7 @@ func read(output chan *argo.Triple, errorOutput chan error, prefixMap map[string
 				return
 			}
 
-			msg(infoStyle, "Parsed '%s' successfully!\n", url)
+			msg(ansi.Blue, "Parsed '%s' successfully!\n", url)
 		}()
 	}
 
@@ -195,7 +190,7 @@ func read(output chan *argo.Triple, errorOutput chan error, prefixMap map[string
 					parser = argo.ParseRDFXML
 				}
 
-				msg(infoStyle, "Parsing standard input...\n")
+				msg(ansi.Blue, "Parsing standard input...\n")
 				tripleChan := make(chan *argo.Triple)
 				errChan := make(chan error)
 				go parser(os.Stdin, tripleChan, errChan, prefixMap)
@@ -212,7 +207,7 @@ func read(output chan *argo.Triple, errorOutput chan error, prefixMap map[string
 					return
 				}
 
-				msg(infoStyle, "Parsed standard input successfully!\n")
+				msg(ansi.Blue, "Parsed standard input successfully!\n")
 			}()
 
 		} else {
@@ -241,7 +236,7 @@ func read(output chan *argo.Triple, errorOutput chan error, prefixMap map[string
 					}
 					defer f.Close()
 
-					msg(infoStyle, "Parsing '%s'...\n", match)
+					msg(ansi.Blue, "Parsing '%s'...\n", match)
 					tripleChan := make(chan *argo.Triple)
 					errChan := make(chan error)
 
@@ -259,7 +254,7 @@ func read(output chan *argo.Triple, errorOutput chan error, prefixMap map[string
 						return
 					}
 
-					msg(infoStyle, "Parsed '%s' successfully!\n", match)
+					msg(ansi.Blue, "Parsed '%s' successfully!\n", match)
 				}()
 			}
 		}
@@ -296,7 +291,7 @@ func main() {
 	err := p.Parse(args)
 
 	if err != nil {
-		ansi.Fprintf(os.Stderr, errStyle, "Error when parsing arguments: %s\n", err.Error())
+		ansi.Fprintf(os.Stderr, ansi.RedBold, "Error when parsing arguments: %s\n", err.Error())
 		os.Exit(1)
 	}
 
@@ -330,7 +325,7 @@ func main() {
 	wasErrors := false
 	for err = range errChan {
 		wasErrors = true
-		msg(errStyle, "%s\n", err.Error())
+		msg(ansi.RedBold, "%s\n", err.Error())
 	}
 
 	if wasErrors && graph.Num() == 0 {
@@ -350,7 +345,7 @@ func main() {
 	} else {
 		output, err = os.Create(args.OutFile)
 		if err != nil {
-			msg(errStyle, "Error when opening '%s' for writing: %s\n", args.OutFile, err.Error())
+			msg(ansi.RedBold, "Error when opening '%s' for writing: %s\n", args.OutFile, err.Error())
 			os.Exit(1)
 		}
 
@@ -361,20 +356,20 @@ func main() {
 		serializer = determineSerializerByFormat(args.OutputFormat)
 	}
 
-	msg(infoStyle, "Serializing...\n")
+	msg(ansi.Blue, "Serializing...\n")
 	err = graph.Serialize(serializer, output)
 
 	if err != nil {
-		ansi.Fprintf(os.Stderr, errStyle, "Error when serializing: %s\n", args.OutFile, err.Error())
+		ansi.Fprintf(os.Stderr, ansi.RedBold, "Error when serializing: %s\n", args.OutFile, err.Error())
 		os.Exit(1)
 	}
 
-	msg(infoStyle, "Serialized!\n")
+	msg(ansi.Blue, "Serialized!\n")
 
 	ms := float64(time.Since(startTime).Nanoseconds()) / 1000000.0
-	msg(infoStyle, "\n%d triples processed in %.3f seconds (%.3f ms)\n", TriplesProcessed, ms/1000.0, ms)
+	msg(ansi.Blue, "\n%d triples processed in %.3f seconds (%.3f ms)\n", TriplesProcessed, ms/1000.0, ms)
 
 	if args.RewriteBNodesPrefix != "" {
-		msg(infoStyle, "%d blank nodes rewritten\n", BNodesRewritten)
+		msg(ansi.Blue, "%d blank nodes rewritten\n", BNodesRewritten)
 	}
 }

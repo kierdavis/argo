@@ -235,7 +235,7 @@ func SerializeRDFXML(w io.Writer, tripleChan chan *Triple, errChan chan error, p
 				_, err = fmt.Fprintf(w, "  <%s:%s %s>\n", tprefix, tname, subjStr)
 
 			} else {
-				_, err = fmt.Fprintf(w, "  <t:%s xmlns:t='%s' %s>\n", tname, tbase, subjStr)
+				_, err = fmt.Fprintf(w, "  <%s xmlns='%s' %s>\n", tname, tbase, subjStr)
 			}
 
 		} else {
@@ -255,7 +255,7 @@ func SerializeRDFXML(w io.Writer, tripleChan chan *Triple, errChan chan error, p
 				_, err = fmt.Fprintf(w, "    <%s:%s", pprefix, pname)
 
 			} else {
-				_, err = fmt.Fprintf(w, "    <p:%s xmlns:p='%s'", pname, pbase)
+				_, err = fmt.Fprintf(w, "    <%s xmlns='%s'", pname, pbase)
 			}
 
 			if err != nil {
@@ -289,7 +289,7 @@ func SerializeRDFXML(w io.Writer, tripleChan chan *Triple, errChan chan error, p
 				if phasPrefix {
 					_, err = fmt.Fprintf(w, ">%s</%s:%s>\n", objLiteral.Value, pprefix, pname)
 				} else {
-					_, err = fmt.Fprintf(w, ">%s</p:%s>\n", objLiteral.Value, pname)
+					_, err = fmt.Fprintf(w, ">%s</%s>\n", objLiteral.Value, pname)
 				}
 
 			} else {
@@ -306,7 +306,7 @@ func SerializeRDFXML(w io.Writer, tripleChan chan *Triple, errChan chan error, p
 			if thasPrefix {
 				_, err = fmt.Fprintf(w, "  </%s:%s>\n", tprefix, tname)
 			} else {
-				_, err = fmt.Fprintf(w, "  </t:%s>\n", tname)
+				_, err = fmt.Fprintf(w, "  </%s>\n", tname)
 			}
 
 		} else {

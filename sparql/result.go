@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/kierdavis/argo"
 	"io"
+	"reflect"
 )
 
 var (
@@ -29,6 +30,70 @@ type stateFunc func(*ResultParser, xml.Token) (stateFunc, error)
 
 type SelectResult map[string]argo.Term
 
+type StructuredResultParser struct {
+	rp     *ResultParser
+	value  reflect.Value
+	rename map[string]string
+}
+
+func NewStructuredResultParser(rp *ResultParser, v interface{}) (srp *StructuredResultParser, err error) {
+	value := reflect.ValueOf(v)
+
+	if value.Type().Kind() == reflect.Ptr {
+		value = value.Elem()
+	}
+
+	t := value.Type()
+
+	if t.Kind() != reflect.Struct {
+		return nil, fmt.Errorf("Invalid type: expected a struct, got a %s", value.Type().Kind())
+	}
+
+	rename := make(map[string]string) // Binding -> struct field
+
+	for i := 0; i < t.NumField(); i++ {
+		field := t.Field(i)
+		tag := field.Tag.Get("sparql")
+		if tag != "" {
+			rename[tag] = field.Name
+		}
+	}
+
+	return &StructuredResultParser{
+		rp:     rp,
+		value:  value,
+		rename: rename,
+	}, nil
+}
+
+func (srp *StructuredResultParser) Read() (err error) {
+	result := srp.rp.ReadResult()
+	if result == nil {
+		return io.EOF
+	}
+
+	for key, value := range result {
+		if key == "" {
+			continue
+		}
+
+		renamed, isRenamed := srp.rename[key]
+		if isRenamed {
+			key = renamed
+		}
+
+		field := srp.value.FieldByName(key)
+
+		if !field.IsValid() {
+			return fmt.Errorf("Could not find a destination field for binding '%s' (try using a struct tag `sparql:\"BINDING_NAME\"`)", key)
+		}
+
+		field.Set(reflect.ValueOf(value))
+	}
+
+	return nil
+}
+
 type ResultParser struct {
 	decoder  *xml.Decoder
 	onFinish func()
@@ -37,6 +102,10 @@ type ResultParser struct {
 	// Header info
 	vars     []string
 	linkURIs []string
+
+	// Signals
+	done       chan struct{}
+	headerDone chan struct{}
 
 	// ASK result
 	boolResult bool
@@ -48,41 +117,47 @@ type ResultParser struct {
 	literalDatatype string
 	results         chan SelectResult
 	errChan         chan error
-	done            chan struct{}
 }
 
-func newResultParser(r io.Reader, onFinish func()) (l *ResultParser) {
-	l = &ResultParser{
-		decoder:  xml.NewDecoder(r),
-		onFinish: onFinish,
-		state:    parseTop,
-		vars:     make([]string, 0),
-		linkURIs: make([]string, 0),
-		results:  make(chan SelectResult),
-		errChan:  make(chan error, 1),
-		done:     make(chan struct{}),
+func newResultParser(r io.Reader, onFinish func()) (rp *ResultParser) {
+	rp = &ResultParser{
+		decoder:    xml.NewDecoder(r),
+		onFinish:   onFinish,
+		state:      parseTop,
+		vars:       make([]string, 0),
+		linkURIs:   make([]string, 0),
+		done:       make(chan struct{}),
+		headerDone: make(chan struct{}),
+		results:    make(chan SelectResult),
+		errChan:    make(chan error, 1),
 	}
 
-	go l.process()
+	go rp.process()
 
-	return l
+	return rp
 }
 
-func (l *ResultParser) Vars() (vars []string) {
-	return l.vars
+func (rp *ResultParser) Vars() (vars []string) {
+	rp.WaitUntilHeaderDone()
+	return rp.vars
 }
 
-func (l *ResultParser) LinkURIs() (linkURIs []string) {
-	return l.linkURIs
+func (rp *ResultParser) LinkURIs() (linkURIs []string) {
+	rp.WaitUntilHeaderDone()
+	return rp.linkURIs
 }
 
-func (l *ResultParser) Wait() {
-	<-l.done
+func (rp *ResultParser) WaitUntilDone() {
+	<-rp.done
 }
 
-func (l *ResultParser) IsDone() (ok bool) {
+func (rp *ResultParser) WaitUntilHeaderDone() {
+	<-rp.headerDone
+}
+
+func (rp *ResultParser) IsDone() (ok bool) {
 	select {
-	case <-l.done: // Channel is closed
+	case <-rp.done: // Channel is closed
 		return true
 
 	default: // Channel is still open
@@ -92,63 +167,71 @@ func (l *ResultParser) IsDone() (ok bool) {
 	return false
 }
 
-func (l *ResultParser) Error() (err error) {
-	return <-l.errChan
+func (rp *ResultParser) IsHeaderDone() (ok bool) {
+	select {
+	case <-rp.headerDone: // Channel is closed
+		return true
+
+	default: // Channel is still open
+		return false
+	}
+
+	return false
 }
 
-func (l *ResultParser) IterResults() (ch chan SelectResult) {
-	return l.results
+func (rp *ResultParser) Error() (err error) {
+	return <-rp.errChan
 }
 
-func (l *ResultParser) FetchResult() (result SelectResult) {
-	return <-l.results
+func (rp *ResultParser) ResultChan() (ch chan SelectResult) {
+	return rp.results
 }
 
-func (l *ResultParser) ParseInto(v interface{}) {
-
+func (rp *ResultParser) ReadResult() (result SelectResult) {
+	return <-rp.results
 }
 
-func (l *ResultParser) FetchAll() (results []SelectResult) {
+func (rp *ResultParser) ReadAll() (results []SelectResult) {
 	results = make([]SelectResult, 0)
 
-	for result := range l.results {
+	for result := range rp.results {
 		results = append(results, result)
 	}
 
 	return results
 }
 
-func (l *ResultParser) process() {
+func (rp *ResultParser) process() {
 	defer func() {
-		close(l.results)
-		close(l.errChan)
-		close(l.done)
+		close(rp.results)
+		close(rp.errChan)
+		close(rp.done)
 
-		if l.onFinish != nil {
-			l.onFinish()
+		if rp.onFinish != nil {
+			rp.onFinish()
 		}
 	}()
 
 	for {
-		err := l.processToken()
+		err := rp.processToken()
 		if err == io.EOF {
 			return
 		}
 
 		if err != nil {
-			l.errChan <- err
+			rp.errChan <- err
 			return
 		}
 	}
 }
 
-func (l *ResultParser) processToken() (err error) {
-	itok, err := l.decoder.Token()
+func (rp *ResultParser) processToken() (err error) {
+	itok, err := rp.decoder.Token()
 	if err != nil {
 		return err
 	}
 
-	newState, err := l.state(l, itok)
+	newState, err := rp.state(rp, itok)
 	if err != nil {
 		return err
 	}
@@ -157,12 +240,12 @@ func (l *ResultParser) processToken() (err error) {
 		return io.EOF
 	}
 
-	l.state = newState
+	rp.state = newState
 
 	return nil
 }
 
-func parseTop(l *ResultParser, itok xml.Token) (newState stateFunc, err error) {
+func parseTop(rp *ResultParser, itok xml.Token) (newState stateFunc, err error) {
 	switch tok := itok.(type) {
 	case xml.ProcInst:
 		return parseTop, nil
@@ -181,7 +264,7 @@ func parseTop(l *ResultParser, itok xml.Token) (newState stateFunc, err error) {
 	return nil, fmt.Errorf("Unexpected %T in parseTop", itok)
 }
 
-func parseSparql(l *ResultParser, itok xml.Token) (newState stateFunc, err error) {
+func parseSparql(rp *ResultParser, itok xml.Token) (newState stateFunc, err error) {
 	switch tok := itok.(type) {
 	case xml.CharData, xml.Comment:
 		return parseSparql, nil
@@ -197,7 +280,7 @@ func parseSparql(l *ResultParser, itok xml.Token) (newState stateFunc, err error
 	return nil, fmt.Errorf("Unexpected %T in parseSparql", itok)
 }
 
-func parseSparql2(l *ResultParser, itok xml.Token) (newState stateFunc, err error) {
+func parseSparql2(rp *ResultParser, itok xml.Token) (newState stateFunc, err error) {
 	switch tok := itok.(type) {
 	case xml.CharData, xml.Comment:
 		return parseSparql2, nil
@@ -218,7 +301,7 @@ func parseSparql2(l *ResultParser, itok xml.Token) (newState stateFunc, err erro
 	return nil, fmt.Errorf("Unexpected %T in parseSparql2", itok)
 }
 
-func parseHead(l *ResultParser, itok xml.Token) (newState stateFunc, err error) {
+func parseHead(rp *ResultParser, itok xml.Token) (newState stateFunc, err error) {
 	switch tok := itok.(type) {
 	case xml.CharData, xml.Comment:
 		return parseHead, nil
@@ -226,11 +309,11 @@ func parseHead(l *ResultParser, itok xml.Token) (newState stateFunc, err error) 
 	case xml.StartElement:
 		switch tok.Name {
 		case sparqlVariable:
-			l.vars = append(l.vars, getAttr(tok.Attr, xml.Name{"", "name"}))
+			rp.vars = append(rp.vars, getAttr(tok.Attr, xml.Name{"", "name"}))
 			return parseHead, nil
 
 		case sparqlLink:
-			l.linkURIs = append(l.linkURIs, getAttr(tok.Attr, xml.Name{"", "href"}))
+			rp.linkURIs = append(rp.linkURIs, getAttr(tok.Attr, xml.Name{"", "href"}))
 			return parseHead, nil
 
 		default:
@@ -243,6 +326,7 @@ func parseHead(l *ResultParser, itok xml.Token) (newState stateFunc, err error) 
 			return parseHead, nil
 
 		case sparqlHead:
+			close(rp.headerDone)
 			return parseSparql2, nil
 		}
 	}
@@ -250,7 +334,7 @@ func parseHead(l *ResultParser, itok xml.Token) (newState stateFunc, err error) 
 	return nil, fmt.Errorf("Unexpected %T in parseHead", itok)
 }
 
-func parseResults(l *ResultParser, itok xml.Token) (newState stateFunc, err error) {
+func parseResults(rp *ResultParser, itok xml.Token) (newState stateFunc, err error) {
 	switch tok := itok.(type) {
 	case xml.CharData, xml.Comment:
 		return parseResults, nil
@@ -260,7 +344,7 @@ func parseResults(l *ResultParser, itok xml.Token) (newState stateFunc, err erro
 			return nil, fmt.Errorf("Expected <result> element inside <results>")
 		}
 
-		l.currentResult = make(SelectResult)
+		rp.currentResult = make(SelectResult)
 
 		return parseResult, nil
 
@@ -271,7 +355,7 @@ func parseResults(l *ResultParser, itok xml.Token) (newState stateFunc, err erro
 	return nil, fmt.Errorf("Unexpected %T in parseResults", itok)
 }
 
-func parseResult(l *ResultParser, itok xml.Token) (newState stateFunc, err error) {
+func parseResult(rp *ResultParser, itok xml.Token) (newState stateFunc, err error) {
 	switch tok := itok.(type) {
 	case xml.CharData, xml.Comment:
 		return parseResult, nil
@@ -281,13 +365,13 @@ func parseResult(l *ResultParser, itok xml.Token) (newState stateFunc, err error
 			return nil, fmt.Errorf("Expected <binding> element inside <result>")
 		}
 
-		l.currentBinding = getAttr(tok.Attr, xml.Name{"", "name"})
+		rp.currentBinding = getAttr(tok.Attr, xml.Name{"", "name"})
 
 		return parseBinding, nil
 
 	case xml.EndElement: // </result>
-		l.results <- l.currentResult
-		l.currentResult = nil
+		rp.results <- rp.currentResult
+		rp.currentResult = nil
 
 		return parseResults, nil
 	}
@@ -295,7 +379,7 @@ func parseResult(l *ResultParser, itok xml.Token) (newState stateFunc, err error
 	return nil, fmt.Errorf("Unexpected %T in parseResult", itok)
 }
 
-func parseBinding(l *ResultParser, itok xml.Token) (newState stateFunc, err error) {
+func parseBinding(rp *ResultParser, itok xml.Token) (newState stateFunc, err error) {
 	switch tok := itok.(type) {
 	case xml.CharData, xml.Comment:
 		return parseBinding, nil
@@ -309,8 +393,8 @@ func parseBinding(l *ResultParser, itok xml.Token) (newState stateFunc, err erro
 			return parseUri, nil
 
 		case sparqlLiteral:
-			l.literalLanguage = getAttr(tok.Attr, xmlLang)
-			l.literalDatatype = getAttr(tok.Attr, xml.Name{"", "datatype"})
+			rp.literalLanguage = getAttr(tok.Attr, xmlLang)
+			rp.literalDatatype = getAttr(tok.Attr, xml.Name{"", "datatype"})
 
 			return parseLiteral, nil
 
@@ -325,14 +409,14 @@ func parseBinding(l *ResultParser, itok xml.Token) (newState stateFunc, err erro
 	return nil, fmt.Errorf("Unexpected %T in parseBinding", itok)
 }
 
-func parseBnode(l *ResultParser, itok xml.Token) (newState stateFunc, err error) {
+func parseBnode(rp *ResultParser, itok xml.Token) (newState stateFunc, err error) {
 	switch tok := itok.(type) {
 	case xml.Comment:
 		return parseBnode, nil
 
 	case xml.CharData:
-		l.currentResult[l.currentBinding] = argo.NewBlankNode(string(tok))
-		l.currentBinding = ""
+		rp.currentResult[rp.currentBinding] = argo.NewBlankNode(string(tok))
+		rp.currentBinding = ""
 
 		return parseBnode, nil
 
@@ -343,14 +427,14 @@ func parseBnode(l *ResultParser, itok xml.Token) (newState stateFunc, err error)
 	return nil, fmt.Errorf("Unexpected %T in parseBnode", itok)
 }
 
-func parseUri(l *ResultParser, itok xml.Token) (newState stateFunc, err error) {
+func parseUri(rp *ResultParser, itok xml.Token) (newState stateFunc, err error) {
 	switch tok := itok.(type) {
 	case xml.Comment:
 		return parseUri, nil
 
 	case xml.CharData:
-		l.currentResult[l.currentBinding] = argo.NewResource(string(tok))
-		l.currentBinding = ""
+		rp.currentResult[rp.currentBinding] = argo.NewResource(string(tok))
+		rp.currentBinding = ""
 
 		return parseUri, nil
 
@@ -361,7 +445,7 @@ func parseUri(l *ResultParser, itok xml.Token) (newState stateFunc, err error) {
 	return nil, fmt.Errorf("Unexpected %T in parseUri", itok)
 }
 
-func parseLiteral(l *ResultParser, itok xml.Token) (newState stateFunc, err error) {
+func parseLiteral(rp *ResultParser, itok xml.Token) (newState stateFunc, err error) {
 	switch tok := itok.(type) {
 	case xml.Comment:
 		return parseLiteral, nil
@@ -369,12 +453,12 @@ func parseLiteral(l *ResultParser, itok xml.Token) (newState stateFunc, err erro
 	case xml.CharData:
 		var datatype argo.Term
 
-		if l.literalDatatype != "" {
-			datatype = argo.NewResource(l.literalDatatype)
+		if rp.literalDatatype != "" {
+			datatype = argo.NewResource(rp.literalDatatype)
 		}
 
-		l.currentResult[l.currentBinding] = argo.NewLiteralWithLanguageAndDatatype(string(tok), l.literalLanguage, datatype)
-		l.currentBinding = ""
+		rp.currentResult[rp.currentBinding] = argo.NewLiteralWithLanguageAndDatatype(string(tok), rp.literalLanguage, datatype)
+		rp.currentBinding = ""
 
 		return parseLiteral, nil
 
@@ -385,7 +469,7 @@ func parseLiteral(l *ResultParser, itok xml.Token) (newState stateFunc, err erro
 	return nil, fmt.Errorf("Unexpected %T in parseLiteral", itok)
 }
 
-func parseBoolean(l *ResultParser, itok xml.Token) (newState stateFunc, err error) {
+func parseBoolean(rp *ResultParser, itok xml.Token) (newState stateFunc, err error) {
 	switch tok := itok.(type) {
 	case xml.Comment:
 		return parseTop, nil
@@ -393,10 +477,10 @@ func parseBoolean(l *ResultParser, itok xml.Token) (newState stateFunc, err erro
 	case xml.CharData:
 		switch string(tok) {
 		case "true":
-			l.boolResult = true
+			rp.boolResult = true
 
 		case "false":
-			l.boolResult = false
+			rp.boolResult = false
 
 		default:
 			return nil, fmt.Errorf("Invalid value for <boolean>: %s", string(tok))
@@ -411,7 +495,7 @@ func parseBoolean(l *ResultParser, itok xml.Token) (newState stateFunc, err erro
 	return nil, fmt.Errorf("Unexpected %T in parseBoolean", itok)
 }
 
-func parseFinish(l *ResultParser, itok xml.Token) (newState stateFunc, err error) {
+func parseFinish(rp *ResultParser, itok xml.Token) (newState stateFunc, err error) {
 	switch itok.(type) {
 	case xml.CharData, xml.Comment:
 		return parseFinish, nil
