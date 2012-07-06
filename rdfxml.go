@@ -20,6 +20,7 @@
 package argo
 
 import (
+	"bytes"
 	"encoding/xml"
 	"fmt"
 	"io"
@@ -47,6 +48,12 @@ var (
 
 	xmlLang = xml.Name{"xml", "lang"}
 )
+
+func escapeXML(s string) (res string) {
+	var buf bytes.Buffer
+	xml.Escape(&buf, []byte(s))
+	return string(buf.Bytes())
+}
 
 // Converts an xml.Name into a IRI reference term (used for predicate and inline type parsing).
 func name2Term(name xml.Name) (term Term) {
@@ -193,7 +200,7 @@ func SerializeRDFXML(w io.Writer, tripleChan chan *Triple, errChan chan error, p
 		triplesBySubject[triple.Subject] = append(triplesBySubject[triple.Subject], triple)
 	}
 
-	_, err = fmt.Fprintf(w, "<rdf:RDF\n  xmlns:rdf='http://www.w3.org/1999/02/22-rdf-syntax-ns#'\n")
+	_, err = fmt.Fprintf(w, "<rdf:RDF\n  xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\"\n")
 	if err != nil {
 		errChan <- err
 		return
@@ -201,7 +208,7 @@ func SerializeRDFXML(w io.Writer, tripleChan chan *Triple, errChan chan error, p
 
 	for uri, prefix := range prefixes {
 		if prefix != "rdf" {
-			_, err = fmt.Fprintf(w, "  xmlns:%s='%s'\n", prefix, uri)
+			_, err = fmt.Fprintf(w, "  xmlns:%s=\"%s\"\n", escapeXML(prefix), escapeXML(uri))
 		}
 	}
 
@@ -219,9 +226,9 @@ func SerializeRDFXML(w io.Writer, tripleChan chan *Triple, errChan chan error, p
 		var subjStr string
 
 		if isResource {
-			subjStr = fmt.Sprintf("rdf:about='%s'", subjResource.URI)
+			subjStr = fmt.Sprintf("rdf:about=\"%s\"", escapeXML(subjResource.URI))
 		} else {
-			subjStr = fmt.Sprintf("rdf:nodeID='%s'", subjNode.ID)
+			subjStr = fmt.Sprintf("rdf:nodeID=\"%s\"", escapeXML(subjNode.ID))
 		}
 
 		var tbase, tname, tprefix string
@@ -232,10 +239,10 @@ func SerializeRDFXML(w io.Writer, tripleChan chan *Triple, errChan chan error, p
 			tprefix, thasPrefix = prefixes[tbase]
 
 			if thasPrefix {
-				_, err = fmt.Fprintf(w, "  <%s:%s %s>\n", tprefix, tname, subjStr)
+				_, err = fmt.Fprintf(w, "  <%s:%s %s>\n", escapeXML(tprefix), escapeXML(tname), subjStr)
 
 			} else {
-				_, err = fmt.Fprintf(w, "  <%s xmlns='%s' %s>\n", tname, tbase, subjStr)
+				_, err = fmt.Fprintf(w, "  <%s xmlns=\"%s\" %s>\n", escapeXML(tname), escapeXML(tbase), subjStr)
 			}
 
 		} else {
@@ -252,10 +259,10 @@ func SerializeRDFXML(w io.Writer, tripleChan chan *Triple, errChan chan error, p
 			pprefix, phasPrefix := prefixes[pbase]
 			//fmt.Println(pbase, pname, pprefix, ok, graph.Prefixes)
 			if phasPrefix {
-				_, err = fmt.Fprintf(w, "    <%s:%s", pprefix, pname)
+				_, err = fmt.Fprintf(w, "    <%s:%s", escapeXML(pprefix), escapeXML(pname))
 
 			} else {
-				_, err = fmt.Fprintf(w, "    <%s xmlns='%s'", pname, pbase)
+				_, err = fmt.Fprintf(w, "    <%s xmlns=\"%s\"", escapeXML(pname), escapeXML(pbase))
 			}
 
 			if err != nil {
@@ -268,18 +275,18 @@ func SerializeRDFXML(w io.Writer, tripleChan chan *Triple, errChan chan error, p
 			objNode, _ := triple.Object.(*BlankNode)
 
 			if isResource {
-				_, err = fmt.Fprintf(w, " rdf:resource='%s' />\n", objResource.URI)
+				_, err = fmt.Fprintf(w, " rdf:resource=\"%s\" />\n", escapeXML(objResource.URI))
 
 			} else if isLiteral {
 				if objLiteral.Language != "" {
-					_, err = fmt.Fprintf(w, " xml:lang='%s'", objLiteral.Language)
+					_, err = fmt.Fprintf(w, " xml:lang=\"%s\"", escapeXML(objLiteral.Language))
 					if err != nil {
 						errChan <- err
 						continue
 					}
 
 				} else if objLiteral.Datatype != nil {
-					_, err = fmt.Fprintf(w, " rdf:datatype='%s'", objLiteral.Datatype.(*Resource).URI)
+					_, err = fmt.Fprintf(w, " rdf:datatype=\"%s\"", escapeXML(objLiteral.Datatype.(*Resource).URI))
 					if err != nil {
 						errChan <- err
 						continue
@@ -287,13 +294,13 @@ func SerializeRDFXML(w io.Writer, tripleChan chan *Triple, errChan chan error, p
 				}
 
 				if phasPrefix {
-					_, err = fmt.Fprintf(w, ">%s</%s:%s>\n", objLiteral.Value, pprefix, pname)
+					_, err = fmt.Fprintf(w, ">%s</%s:%s>\n", escapeXML(objLiteral.Value), escapeXML(pprefix), escapeXML(pname))
 				} else {
-					_, err = fmt.Fprintf(w, ">%s</%s>\n", objLiteral.Value, pname)
+					_, err = fmt.Fprintf(w, ">%s</%s>\n", escapeXML(objLiteral.Value), escapeXML(pname))
 				}
 
 			} else {
-				_, err = fmt.Fprintf(w, " rdf:nodeID='%s' />\n", objNode.ID)
+				_, err = fmt.Fprintf(w, " rdf:nodeID=\"%s\" />\n", escapeXML(objNode.ID))
 			}
 
 			if err != nil {
@@ -304,9 +311,9 @@ func SerializeRDFXML(w io.Writer, tripleChan chan *Triple, errChan chan error, p
 
 		if hasType {
 			if thasPrefix {
-				_, err = fmt.Fprintf(w, "  </%s:%s>\n", tprefix, tname)
+				_, err = fmt.Fprintf(w, "  </%s:%s>\n", escapeXML(tprefix), escapeXML(tname))
 			} else {
-				_, err = fmt.Fprintf(w, "  </%s>\n", tname)
+				_, err = fmt.Fprintf(w, "  </%s>\n", escapeXML(tname))
 			}
 
 		} else {

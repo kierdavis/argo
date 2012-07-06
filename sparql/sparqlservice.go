@@ -1,6 +1,7 @@
 package sparql
 
 import (
+	"fmt"
 	"github.com/kierdavis/argo"
 	"net/http"
 	"net/url"
@@ -9,6 +10,7 @@ import (
 
 type SparqlService struct {
 	EndpointURI string
+	Debug       bool
 }
 
 func NewSparqlService(endpointURI string) (service SparqlService) {
@@ -18,7 +20,13 @@ func NewSparqlService(endpointURI string) (service SparqlService) {
 }
 
 func (service SparqlService) do(form url.Values, accept string) (resp *http.Response, err error) {
-	req, err := http.NewRequest("POST", service.EndpointURI, strings.NewReader(form.Encode()))
+	payload := form.Encode()
+
+	if service.Debug {
+		fmt.Println("POST", service.EndpointURI, payload)
+	}
+
+	req, err := http.NewRequest("POST", service.EndpointURI, strings.NewReader(payload))
 	if err != nil {
 		return nil, err
 	}

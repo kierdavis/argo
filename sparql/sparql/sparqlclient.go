@@ -5,9 +5,11 @@ import (
 	"fmt"
 	"github.com/kierdavis/ansi"
 	"github.com/kierdavis/argo"
+	"github.com/kierdavis/argo/fuseki"
 	"github.com/kierdavis/argo/sparql"
 	"github.com/kierdavis/argo/squirtle"
 	"github.com/kierdavis/argparse"
+	"io"
 	"os"
 	"regexp"
 	"strings"
@@ -18,6 +20,8 @@ var PrefixRegexp = regexp.MustCompile(`^\s*[pP][rR][eE][fF][iI][xX]\s+(\w+)\s*:\
 type Args struct {
 	Endpoint       string
 	UpdateEndpoint string
+	UseFuseki      bool
+	Debug          bool
 }
 
 func max(a, b int) (q int) {
@@ -37,6 +41,10 @@ type Table struct {
 func (table *Table) SetHeader(items ...string) {
 	table.Header = items
 	table.Widths = make([]int, len(items))
+
+	for i, item := range items {
+		table.Widths[i] = len(item)
+	}
 }
 
 func (table *Table) AddRow(items ...string) {
@@ -101,12 +109,21 @@ func trimPrefixes(line string, prefixes map[string]string) (newLine string) {
 
 func center(s string, width int) (res string) {
 	spacing := width - len(s)
+	if spacing < 0 {
+		spacing = 0
+	}
+
 	halfSpacing := spacing / 2
 	return strings.Repeat(" ", halfSpacing) + s + strings.Repeat(" ", spacing-halfSpacing)
 }
 
 func leftAlign(s string, width int) (res string) {
-	return s + strings.Repeat(" ", width-len(s))
+	spacing := width - len(s)
+	if spacing < 0 {
+		spacing = 0
+	}
+
+	return s + strings.Repeat(" ", spacing)
 }
 
 func update(a, b map[string]string) {
@@ -125,6 +142,8 @@ func main() {
 	p := argparse.New("A SPARQL query & update client")
 	p.Argument("Endpoint", 1, argparse.Store, "endpoint_uri", "The SPARQL endpoint URI. It is used for all query operations, and update operations when -u is not specified.")
 	p.Option('u', "update-endpoint", "UpdateEndpoint", 1, argparse.Store, "URI", "An alternative endpoint URI that is only used for SPARQL update operations. Default: use the query endpoint URI.")
+	p.Option('f', "fuseki", "UseFuseki", 0, argparse.StoreConst(true), "", "Interpret endpoint_uri as the URI of a Fuseki dataset, and then use its query and update services as the corresponding endpoints for the session.")
+	p.Option('d', "debug", "Debug", 0, argparse.StoreConst(true), "", "Show debug info.")
 
 	args := &Args{}
 	err := p.Parse(args)
@@ -140,14 +159,26 @@ func main() {
 		}
 	}
 
-	queryService := sparql.NewSparqlService(args.Endpoint)
-	updateService := queryService
+	var queryService, updateService sparql.SparqlService
 
-	if args.UpdateEndpoint != "" {
-		updateService = sparql.NewSparqlService(args.UpdateEndpoint)
+	if args.UseFuseki {
+		dataset := fuseki.NewDataset(args.Endpoint)
+		queryService = dataset.QueryService()
+		updateService = dataset.UpdateService()
+
+	} else {
+		queryService = sparql.NewSparqlService(args.Endpoint)
+
+		if args.UpdateEndpoint != "" {
+			updateService = sparql.NewSparqlService(args.UpdateEndpoint)
+
+		} else {
+			updateService = queryService
+		}
 	}
 
-	_ = updateService
+	queryService.Debug = args.Debug
+	updateService.Debug = args.Debug
 
 	stdinReader := bufio.NewReader(os.Stdin)
 	prefixes := make(map[string]string) // Prefix -> Base URI
@@ -158,6 +189,10 @@ mainloop:
 		fmt.Print("> ")
 
 		line, err := stdinReader.ReadString('\n')
+		if err == io.EOF {
+			return
+		}
+
 		if die(err, false) {
 			continue mainloop
 		}
@@ -197,9 +232,9 @@ mainloop:
 				table.AddRow(fields...)
 			}
 
-			ansi.AttrOn(ansi.Green)
+			ansi.AttrOn(ansi.Yellow)
 			table.Print()
-			ansi.AttrOff(ansi.Green)
+			ansi.AttrOff(ansi.Yellow)
 
 		case "ASK":
 			result, err := queryService.Ask(line)
@@ -220,6 +255,14 @@ mainloop:
 			ansi.AttrOn(ansi.Cyan)
 			graph.Serialize(serializer, os.Stdout)
 			ansi.AttrOff(ansi.Cyan)
+
+		case "INSERT", "DELETE", "LOAD", "CLEAR", "CREATE", "DROP", "COPY", "MOVE", "ADD":
+			err := updateService.Update(line)
+			if die(err, false) {
+				continue mainloop
+			}
+
+			ansi.Println(ansi.GreenBold, "OK")
 
 		case "FORMAT":
 			format := strings.ToLower(line[spacePos+1:])

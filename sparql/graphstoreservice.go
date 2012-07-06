@@ -2,6 +2,7 @@ package sparql
 
 import (
 	"bytes"
+	"fmt"
 	"github.com/kierdavis/argo"
 	"net/http"
 	"net/url"
@@ -10,6 +11,7 @@ import (
 
 type GraphStoreService struct {
 	EndpointURI string
+	Debug       bool
 }
 
 func NewGraphStoreService(endpointURI string) (service GraphStoreService) {
@@ -36,7 +38,12 @@ func (service GraphStoreService) ActionURI(graphURI string) (actionURI string) {
 }
 
 func (service GraphStoreService) Get(graphURI string) (graph *argo.Graph, err error) {
-	req, err := http.NewRequest("GET", service.ActionURI(graphURI), nil)
+	actionURI := service.ActionURI(graphURI)
+	if service.Debug {
+		fmt.Println("GET", actionURI)
+	}
+
+	req, err := http.NewRequest("GET", actionURI, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -65,7 +72,14 @@ func (service GraphStoreService) Put(graphURI string, graph *argo.Graph) (err er
 		return err
 	}
 
-	req, err := http.NewRequest("PUT", service.ActionURI(graphURI), buf)
+	//fmt.Println(string(buf.Bytes()))
+
+	actionURI := service.ActionURI(graphURI)
+	if service.Debug {
+		fmt.Println("PUT", actionURI)
+	}
+
+	req, err := http.NewRequest("PUT", actionURI, buf)
 	if err != nil {
 		return err
 	}
@@ -81,7 +95,12 @@ func (service GraphStoreService) Put(graphURI string, graph *argo.Graph) (err er
 }
 
 func (service GraphStoreService) Delete(graphURI string) (err error) {
-	req, err := http.NewRequest("DELETE", service.ActionURI(graphURI), nil)
+	actionURI := service.ActionURI(graphURI)
+	if service.Debug {
+		fmt.Println("DELETE", actionURI)
+	}
+
+	req, err := http.NewRequest("DELETE", actionURI, nil)
 	if err != nil {
 		return err
 	}
@@ -101,7 +120,12 @@ func (service GraphStoreService) Post(graphURI string, graph *argo.Graph) (err e
 		return err
 	}
 
-	req, err := http.NewRequest("POST", service.ActionURI(graphURI), buf)
+	actionURI := service.ActionURI(graphURI)
+	if service.Debug {
+		fmt.Println("POST", actionURI)
+	}
+
+	req, err := http.NewRequest("POST", actionURI, buf)
 	if err != nil {
 		return err
 	}
@@ -117,7 +141,12 @@ func (service GraphStoreService) Post(graphURI string, graph *argo.Graph) (err e
 }
 
 func (service GraphStoreService) Head(graphURI string) (err error) {
-	req, err := http.NewRequest("HEAD", service.ActionURI(graphURI), nil)
+	actionURI := service.ActionURI(graphURI)
+	if service.Debug {
+		fmt.Println("HEAD", actionURI)
+	}
+
+	req, err := http.NewRequest("HEAD", actionURI, nil)
 	if err != nil {
 		return err
 	}
@@ -131,7 +160,12 @@ func (service GraphStoreService) Head(graphURI string) (err error) {
 }
 
 func (service GraphStoreService) Patch(graphURI string, updateQuery string) (err error) {
-	req, err := http.NewRequest("PATCH", service.ActionURI(graphURI), strings.NewReader(updateQuery))
+	actionURI := service.ActionURI(graphURI)
+	if service.Debug {
+		fmt.Println("PATCH", actionURI)
+	}
+
+	req, err := http.NewRequest("PATCH", actionURI, strings.NewReader(updateQuery))
 	if err != nil {
 		return err
 	}

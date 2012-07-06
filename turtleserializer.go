@@ -5,6 +5,9 @@ import (
 	"io"
 )
 
+// Function SerializeTurtle serializes triples to the specified Writer in Turtle format, recieving
+// triples from tripleChan until closed and sending errors to errChan (closing errChan when done).
+// Prefixes is a map of namespace URIs to prefix names that is to produce compact output.
 func SerializeTurtle(w io.Writer, tripleChan chan *Triple, errChan chan error, prefixes map[string]string) {
 	defer close(errChan)
 
