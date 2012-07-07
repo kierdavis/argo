@@ -97,6 +97,12 @@ func determineSerializerByFormat(format string) (serializer argo.Serializer) {
 	case "ntriples":
 		return argo.SerializeNTriples
 
+	case "turtle":
+		return argo.SerializeTurtle
+
+	case "json":
+		return argo.SerializeJSON
+
 	case "squirtle":
 		return squirtle.SerializeSquirtle
 	}
@@ -107,6 +113,14 @@ func determineSerializerByFormat(format string) (serializer argo.Serializer) {
 func determineSerializerByExtension(path string) (serializer argo.Serializer) {
 	if strings.HasSuffix(path, ".nt") || strings.HasSuffix(path, ".txt") {
 		return argo.SerializeNTriples
+	}
+
+	if strings.HasSuffix(path, ".ttl") {
+		return argo.SerializeTurtle
+	}
+
+	if strings.HasSuffix(path, ".json") {
+		return argo.SerializeJSON
 	}
 
 	if strings.HasSuffix(path, ".squirtle") {

@@ -82,15 +82,15 @@ func (store *ListStore) Filter(subject Term, predicate Term, object Term) (ch ch
 
 	go func() {
 		for _, triple := range store.triples {
-			if subject != nil && subject != triple.Subject {
+			if subject != nil && !subject.Equal(triple.Subject) {
 				continue
 			}
 
-			if predicate != nil && predicate != triple.Predicate {
+			if predicate != nil && !predicate.Equal(triple.Predicate) {
 				continue
 			}
 
-			if object != nil && object != triple.Object {
+			if object != nil && !object.Equal(triple.Object) {
 				continue
 			}
 

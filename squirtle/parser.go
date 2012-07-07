@@ -51,6 +51,7 @@ type yySymType struct {
 	yys int
 	s   string
 	t   argo.Term
+	tL  []argo.Term
 }
 
 const A = 57346
@@ -80,7 +81,7 @@ const yyEofCode = 1
 const yyErrCode = 2
 const yyMaxDepth = 200
 
-//line src/github.com/kierdavis/argo/squirtle/parser.y:122
+//line src/github.com/kierdavis/argo/squirtle/parser.y:133
 
 func addHash(s string) (r string) {
 	last := s[len(s)-1]
@@ -306,80 +307,81 @@ var yyExca = []int{
 	-1, 1,
 	1, -1,
 	-2, 0,
-	-1, 45,
+	-1, 46,
 	13, 11,
-	-2, 19,
-	-1, 47,
-	13, 10,
 	-2, 21,
+	-1, 48,
+	13, 10,
+	-2, 23,
 }
 
-const yyNprod = 41
+const yyNprod = 43
 const yyPrivate = 57344
 
 var yyTokenNames []string
 var yyStates []string
 
-const yyLast = 70
+const yyLast = 76
 
 var yyAct = []int{
 
-	9, 5, 10, 34, 26, 29, 32, 23, 26, 32,
-	25, 16, 13, 21, 16, 13, 42, 33, 51, 52,
-	33, 12, 31, 17, 16, 13, 6, 50, 41, 31,
-	40, 47, 48, 45, 43, 39, 12, 16, 13, 16,
-	13, 22, 49, 36, 37, 27, 11, 28, 35, 20,
-	38, 12, 53, 19, 16, 13, 6, 3, 4, 2,
-	18, 1, 7, 8, 30, 44, 46, 24, 15, 14,
+	9, 5, 25, 10, 45, 32, 29, 23, 26, 34,
+	16, 13, 26, 53, 32, 42, 33, 21, 51, 16,
+	13, 55, 31, 52, 41, 33, 22, 39, 27, 31,
+	3, 48, 49, 18, 46, 43, 40, 12, 16, 13,
+	16, 13, 12, 50, 17, 16, 13, 6, 28, 20,
+	4, 2, 48, 49, 56, 46, 54, 36, 37, 1,
+	44, 7, 35, 12, 38, 11, 16, 13, 6, 8,
+	30, 47, 19, 24, 15, 14,
 }
 var yyPact = []int{
 
-	45, -1000, 15, -1000, -1000, -1000, 28, 0, -1000, -1000,
-	-1000, -1000, 32, -1000, -1000, -1000, -10, -1000, -1000, 40,
-	-1000, 5, -1000, 39, -14, -1000, 39, 19, 2, -1000,
-	30, -1000, -1000, -1000, -1000, -1000, -1000, -1000, -1000, -1000,
-	-1000, -1000, -1000, -1000, -1000, -1000, -1000, -1000, -1000, 11,
-	10, 28, -1000, -1000,
+	57, -1000, 36, -1000, -1000, -1000, 29, 4, -1000, -1000,
+	-1000, -1000, 17, -1000, -1000, -1000, -11, -1000, -1000, 23,
+	-1000, 10, -1000, 53, -7, -1000, 53, 15, 1, -1000,
+	31, -1000, -1000, -1000, -1000, -1000, -1000, -1000, -1000, -1000,
+	-1000, -1000, -1000, -1000, 2, -1000, -1000, -1000, -1000, -1000,
+	6, 31, 12, 29, -1000, -1000, -1000,
 }
 var yyPgo = []int{
 
-	0, 3, 69, 46, 68, 10, 67, 2, 1, 0,
-	66, 65, 64, 63, 62, 61, 59, 57, 58, 49,
-	47, 5,
+	0, 9, 75, 65, 74, 2, 73, 3, 1, 0,
+	71, 4, 70, 69, 61, 60, 59, 51, 30, 50,
+	49, 48, 6,
 }
 var yyR1 = []int{
 
-	0, 15, 16, 16, 17, 17, 18, 8, 19, 14,
-	13, 13, 13, 20, 20, 21, 12, 12, 12, 11,
-	11, 11, 11, 7, 10, 10, 10, 9, 3, 3,
-	3, 3, 2, 4, 6, 6, 5, 1, 1, 1,
-	1,
+	0, 16, 17, 17, 18, 18, 19, 8, 20, 14,
+	13, 13, 13, 21, 21, 22, 12, 12, 12, 15,
+	15, 11, 11, 11, 11, 7, 10, 10, 10, 9,
+	3, 3, 3, 3, 2, 4, 6, 6, 5, 1,
+	1, 1, 1,
 }
 var yyR2 = []int{
 
 	0, 2, 2, 1, 1, 1, 4, 2, 3, 1,
-	1, 1, 0, 2, 1, 2, 1, 1, 1, 1,
-	1, 1, 1, 2, 1, 3, 3, 1, 1, 1,
-	1, 1, 3, 2, 2, 1, 2, 1, 1, 1,
-	1,
+	1, 1, 0, 2, 1, 2, 1, 1, 1, 3,
+	1, 1, 1, 1, 1, 2, 1, 3, 3, 1,
+	1, 1, 1, 1, 3, 2, 2, 1, 2, 1,
+	1, 1, 1,
 }
 var yyChk = []int{
 
-	-1000, -15, -16, -17, -18, -8, 11, -14, -13, -9,
-	-7, -3, 6, 10, -2, -4, 9, 8, -17, -3,
-	-19, 13, 9, 17, -6, -5, 18, 5, -20, -21,
+	-1000, -16, -17, -18, -19, -8, 11, -14, -13, -9,
+	-7, -3, 6, 10, -2, -4, 9, 8, -18, -3,
+	-20, 13, 9, 18, -6, -5, 19, 5, -21, -22,
 	-12, -9, 4, 15, -1, 9, 4, 5, 11, -5,
-	-1, 9, 14, -21, -11, -7, -10, -9, -8, 12,
-	16, 7, 9, -9,
+	-1, 9, 14, -22, -15, -11, -7, -10, -9, -8,
+	12, 16, 17, 7, -11, 9, -9,
 }
 var yyDef = []int{
 
 	12, -2, 12, 3, 4, 5, 0, 0, 9, 10,
-	11, 27, 0, 28, 29, 30, 31, 1, 2, 0,
-	7, 0, 23, 0, 33, 35, 0, 0, 0, 14,
-	12, 16, 17, 18, 32, 37, 38, 39, 40, 34,
-	36, 6, 8, 13, 15, -2, 20, -2, 22, 24,
-	0, 0, 25, 26,
+	11, 29, 0, 30, 31, 32, 33, 1, 2, 0,
+	7, 0, 25, 0, 35, 37, 0, 0, 0, 14,
+	12, 16, 17, 18, 34, 39, 40, 41, 42, 36,
+	38, 6, 8, 13, 15, 20, -2, 22, -2, 24,
+	26, 12, 0, 0, 19, 27, 28,
 }
 var yyTok1 = []int{
 
@@ -387,9 +389,9 @@ var yyTok1 = []int{
 	3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
 	3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
 	3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
-	3, 3, 15, 3, 3, 3, 3, 18, 3, 3,
-	3, 3, 3, 3, 3, 3, 3, 3, 17, 3,
-	3, 3, 3, 3, 16, 3, 3, 3, 3, 3,
+	3, 3, 15, 3, 16, 3, 3, 19, 3, 3,
+	3, 3, 3, 3, 3, 3, 3, 3, 18, 3,
+	3, 3, 3, 3, 17, 3, 3, 3, 3, 3,
 	3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
 	3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
 	3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
@@ -631,171 +633,184 @@ yydefault:
 	switch yynt {
 
 	case 1:
-		//line src/github.com/kierdavis/argo/squirtle/parser.y:61
+		//line src/github.com/kierdavis/argo/squirtle/parser.y:63
 		{
 			return 0
 		}
 	case 6:
-		//line src/github.com/kierdavis/argo/squirtle/parser.y:69
+		//line src/github.com/kierdavis/argo/squirtle/parser.y:71
 		{
 			names[yyS[yypt-0].s] = yyS[yypt-2].s
 			prefixMap[yyS[yypt-2].s] = yyS[yypt-0].s
 		}
 	case 7:
-		//line src/github.com/kierdavis/argo/squirtle/parser.y:71
+		//line src/github.com/kierdavis/argo/squirtle/parser.y:73
 		{
 			yyVAL.t = yyS[yypt-1].t
 			stack = stack[:len(stack)-1]
 		}
 	case 9:
-		//line src/github.com/kierdavis/argo/squirtle/parser.y:75
+		//line src/github.com/kierdavis/argo/squirtle/parser.y:77
 		{
 			yyVAL.t = yyS[yypt-0].t
 			stack = append(stack, stackEntry{yyVAL.t, 1})
 		}
 	case 10:
-		//line src/github.com/kierdavis/argo/squirtle/parser.y:77
+		//line src/github.com/kierdavis/argo/squirtle/parser.y:79
 		{
 			yyVAL.t = yyS[yypt-0].t
 		}
 	case 11:
-		//line src/github.com/kierdavis/argo/squirtle/parser.y:78
+		//line src/github.com/kierdavis/argo/squirtle/parser.y:80
 		{
 			yyVAL.t = yyS[yypt-0].t
 		}
 	case 12:
-		//line src/github.com/kierdavis/argo/squirtle/parser.y:79
+		//line src/github.com/kierdavis/argo/squirtle/parser.y:81
 		{
 			yyVAL.t = argo.NewAnonNode()
 		}
 	case 15:
-		//line src/github.com/kierdavis/argo/squirtle/parser.y:84
+		//line src/github.com/kierdavis/argo/squirtle/parser.y:87
 		{
-			tripleChan <- argo.NewTriple(stack[len(stack)-1].Subject, yyS[yypt-1].t, yyS[yypt-0].t)
+			subj := stack[len(stack)-1].Subject
+			for _, obj := range yyS[yypt-0].tL {
+				tripleChan <- argo.NewTriple(subj, yyS[yypt-1].t, obj)
+			}
 		}
 	case 16:
-		//line src/github.com/kierdavis/argo/squirtle/parser.y:86
+		//line src/github.com/kierdavis/argo/squirtle/parser.y:94
 		{
 			yyVAL.t = yyS[yypt-0].t
 		}
 	case 17:
-		//line src/github.com/kierdavis/argo/squirtle/parser.y:87
+		//line src/github.com/kierdavis/argo/squirtle/parser.y:95
 		{
 			yyVAL.t = argo.A
 		}
 	case 18:
-		//line src/github.com/kierdavis/argo/squirtle/parser.y:88
+		//line src/github.com/kierdavis/argo/squirtle/parser.y:96
 		{
 			yyVAL.t = argo.RDF.Get(fmt.Sprintf("_%d", stack[len(stack)-1].NextItem))
 			stack[len(stack)-1].NextItem++
 		}
 	case 19:
-		//line src/github.com/kierdavis/argo/squirtle/parser.y:90
+		//line src/github.com/kierdavis/argo/squirtle/parser.y:98
 		{
-			yyVAL.t = yyS[yypt-0].t
+			yyVAL.tL = append(yyS[yypt-2].tL, yyS[yypt-0].t)
 		}
 	case 20:
-		//line src/github.com/kierdavis/argo/squirtle/parser.y:91
+		//line src/github.com/kierdavis/argo/squirtle/parser.y:99
 		{
-			yyVAL.t = yyS[yypt-0].t
+			yyVAL.tL = []argo.Term{yyS[yypt-0].t}
 		}
 	case 21:
-		//line src/github.com/kierdavis/argo/squirtle/parser.y:92
+		//line src/github.com/kierdavis/argo/squirtle/parser.y:101
 		{
 			yyVAL.t = yyS[yypt-0].t
 		}
 	case 22:
-		//line src/github.com/kierdavis/argo/squirtle/parser.y:93
+		//line src/github.com/kierdavis/argo/squirtle/parser.y:102
 		{
 			yyVAL.t = yyS[yypt-0].t
 		}
 	case 23:
-		//line src/github.com/kierdavis/argo/squirtle/parser.y:95
+		//line src/github.com/kierdavis/argo/squirtle/parser.y:103
+		{
+			yyVAL.t = yyS[yypt-0].t
+		}
+	case 24:
+		//line src/github.com/kierdavis/argo/squirtle/parser.y:104
+		{
+			yyVAL.t = yyS[yypt-0].t
+		}
+	case 25:
+		//line src/github.com/kierdavis/argo/squirtle/parser.y:106
 		{
 			yyVAL.t = argo.NewBlankNode(yyS[yypt-0].s)
 		}
-	case 24:
-		//line src/github.com/kierdavis/argo/squirtle/parser.y:97
+	case 26:
+		//line src/github.com/kierdavis/argo/squirtle/parser.y:108
 		{
 			yyVAL.t = argo.NewLiteral(yyS[yypt-0].s)
 		}
-	case 25:
-		//line src/github.com/kierdavis/argo/squirtle/parser.y:98
+	case 27:
+		//line src/github.com/kierdavis/argo/squirtle/parser.y:109
 		{
 			yyVAL.t = argo.NewLiteralWithLanguage(yyS[yypt-2].s, yyS[yypt-0].s)
 		}
-	case 26:
-		//line src/github.com/kierdavis/argo/squirtle/parser.y:99
+	case 28:
+		//line src/github.com/kierdavis/argo/squirtle/parser.y:110
 		{
 			yyVAL.t = argo.NewLiteralWithDatatype(yyS[yypt-2].s, yyS[yypt-0].t)
 		}
-	case 27:
-		//line src/github.com/kierdavis/argo/squirtle/parser.y:101
+	case 29:
+		//line src/github.com/kierdavis/argo/squirtle/parser.y:112
 		{
 			yyVAL.t = argo.NewResource(yyS[yypt-0].s)
 		}
-	case 28:
-		//line src/github.com/kierdavis/argo/squirtle/parser.y:103
-		{
-			yyVAL.s = yyS[yypt-0].s
-		}
-	case 29:
-		//line src/github.com/kierdavis/argo/squirtle/parser.y:104
-		{
-			yyVAL.s = yyS[yypt-0].s
-		}
 	case 30:
-		//line src/github.com/kierdavis/argo/squirtle/parser.y:105
+		//line src/github.com/kierdavis/argo/squirtle/parser.y:114
 		{
 			yyVAL.s = yyS[yypt-0].s
 		}
 	case 31:
-		//line src/github.com/kierdavis/argo/squirtle/parser.y:106
-		{
-			yyVAL.s = names[yyS[yypt-0].s]
-		}
-	case 32:
-		//line src/github.com/kierdavis/argo/squirtle/parser.y:108
-		{
-			yyVAL.s = addHash(names[yyS[yypt-2].s]) + yyS[yypt-0].s
-		}
-	case 33:
-		//line src/github.com/kierdavis/argo/squirtle/parser.y:110
-		{
-			yyVAL.s = stripSlash(names[yyS[yypt-1].s]) + yyS[yypt-0].s
-		}
-	case 34:
-		//line src/github.com/kierdavis/argo/squirtle/parser.y:112
-		{
-			yyVAL.s = yyS[yypt-1].s + yyS[yypt-0].s
-		}
-	case 35:
-		//line src/github.com/kierdavis/argo/squirtle/parser.y:113
+		//line src/github.com/kierdavis/argo/squirtle/parser.y:115
 		{
 			yyVAL.s = yyS[yypt-0].s
 		}
-	case 36:
-		//line src/github.com/kierdavis/argo/squirtle/parser.y:115
+	case 32:
+		//line src/github.com/kierdavis/argo/squirtle/parser.y:116
 		{
-			yyVAL.s = "/" + yyS[yypt-0].s
+			yyVAL.s = yyS[yypt-0].s
+		}
+	case 33:
+		//line src/github.com/kierdavis/argo/squirtle/parser.y:117
+		{
+			yyVAL.s = names[yyS[yypt-0].s]
+		}
+	case 34:
+		//line src/github.com/kierdavis/argo/squirtle/parser.y:119
+		{
+			yyVAL.s = addHash(names[yyS[yypt-2].s]) + yyS[yypt-0].s
+		}
+	case 35:
+		//line src/github.com/kierdavis/argo/squirtle/parser.y:121
+		{
+			yyVAL.s = stripSlash(names[yyS[yypt-1].s]) + yyS[yypt-0].s
+		}
+	case 36:
+		//line src/github.com/kierdavis/argo/squirtle/parser.y:123
+		{
+			yyVAL.s = yyS[yypt-1].s + yyS[yypt-0].s
 		}
 	case 37:
-		//line src/github.com/kierdavis/argo/squirtle/parser.y:117
+		//line src/github.com/kierdavis/argo/squirtle/parser.y:124
 		{
 			yyVAL.s = yyS[yypt-0].s
 		}
 	case 38:
-		//line src/github.com/kierdavis/argo/squirtle/parser.y:118
+		//line src/github.com/kierdavis/argo/squirtle/parser.y:126
 		{
-			yyVAL.s = yyS[yypt-0].s
+			yyVAL.s = "/" + yyS[yypt-0].s
 		}
 	case 39:
-		//line src/github.com/kierdavis/argo/squirtle/parser.y:119
+		//line src/github.com/kierdavis/argo/squirtle/parser.y:128
 		{
 			yyVAL.s = yyS[yypt-0].s
 		}
 	case 40:
-		//line src/github.com/kierdavis/argo/squirtle/parser.y:120
+		//line src/github.com/kierdavis/argo/squirtle/parser.y:129
+		{
+			yyVAL.s = yyS[yypt-0].s
+		}
+	case 41:
+		//line src/github.com/kierdavis/argo/squirtle/parser.y:130
+		{
+			yyVAL.s = yyS[yypt-0].s
+		}
+	case 42:
+		//line src/github.com/kierdavis/argo/squirtle/parser.y:131
 		{
 			yyVAL.s = yyS[yypt-0].s
 		}

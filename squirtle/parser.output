@@ -7,7 +7,7 @@ state 0
 	IDENTIFIER  shift 16
 	IRIREF  shift 13
 	NAME  shift 6
-	.  reduce 12 (src line 79)
+	.  reduce 12 (src line 81)
 
 	qname  goto 14
 	raw_iriref  goto 11
@@ -39,7 +39,7 @@ state 2
 	IDENTIFIER  shift 16
 	IRIREF  shift 13
 	NAME  shift 6
-	.  reduce 12 (src line 79)
+	.  reduce 12 (src line 81)
 
 	qname  goto 14
 	raw_iriref  goto 11
@@ -55,19 +55,19 @@ state 2
 state 3
 	statements:  statement.    (3)
 
-	.  reduce 3 (src line 64)
+	.  reduce 3 (src line 66)
 
 
 state 4
 	statement:  name_decl.    (4)
 
-	.  reduce 4 (src line 66)
+	.  reduce 4 (src line 68)
 
 
 state 5
 	statement:  description.    (5)
 
-	.  reduce 5 (src line 67)
+	.  reduce 5 (src line 69)
 
 
 state 6
@@ -92,25 +92,25 @@ state 7
 state 8
 	subject:  raw_subject.    (9)
 
-	.  reduce 9 (src line 75)
+	.  reduce 9 (src line 77)
 
 
 state 9
 	raw_subject:  iriref.    (10)
 
-	.  reduce 10 (src line 77)
+	.  reduce 10 (src line 79)
 
 
 state 10
 	raw_subject:  bnode.    (11)
 
-	.  reduce 11 (src line 78)
+	.  reduce 11 (src line 80)
 
 
 state 11
-	iriref:  raw_iriref.    (27)
+	iriref:  raw_iriref.    (29)
 
-	.  reduce 27 (src line 101)
+	.  reduce 29 (src line 112)
 
 
 state 12
@@ -121,31 +121,31 @@ state 12
 
 
 state 13
-	raw_iriref:  IRIREF.    (28)
+	raw_iriref:  IRIREF.    (30)
 
-	.  reduce 28 (src line 103)
+	.  reduce 30 (src line 114)
 
 
 state 14
-	raw_iriref:  qname.    (29)
+	raw_iriref:  qname.    (31)
 
-	.  reduce 29 (src line 104)
+	.  reduce 31 (src line 115)
 
 
 state 15
-	raw_iriref:  slash_separated_name.    (30)
+	raw_iriref:  slash_separated_name.    (32)
 
-	.  reduce 30 (src line 105)
+	.  reduce 32 (src line 116)
 
 
 state 16
-	raw_iriref:  IDENTIFIER.    (31)
+	raw_iriref:  IDENTIFIER.    (33)
 	qname:  IDENTIFIER.: identifier 
 	slash_separated_name:  IDENTIFIER.slashed_extensions 
 
 	:  shift 23
 	/  shift 26
-	.  reduce 31 (src line 106)
+	.  reduce 33 (src line 117)
 
 	slashed_extension  goto 25
 	slashed_extensions  goto 24
@@ -153,13 +153,13 @@ state 16
 state 17
 	squirtle:  statements EOF.    (1)
 
-	.  reduce 1 (src line 61)
+	.  reduce 1 (src line 63)
 
 
 state 18
 	statements:  statements statement.    (2)
 
-	.  reduce 2 (src line 63)
+	.  reduce 2 (src line 65)
 
 
 state 19
@@ -172,7 +172,7 @@ state 19
 state 20
 	description:  subject description_body.    (7)
 
-	.  reduce 7 (src line 71)
+	.  reduce 7 (src line 73)
 
 
 state 21
@@ -193,9 +193,9 @@ state 21
 	predicate_object  goto 29
 
 state 22
-	bnode:  BNODE IDENTIFIER.    (23)
+	bnode:  BNODE IDENTIFIER.    (25)
 
-	.  reduce 23 (src line 95)
+	.  reduce 25 (src line 106)
 
 
 state 23
@@ -210,18 +210,18 @@ state 23
 	identifier  goto 34
 
 state 24
-	slash_separated_name:  IDENTIFIER slashed_extensions.    (33)
+	slash_separated_name:  IDENTIFIER slashed_extensions.    (35)
 	slashed_extensions:  slashed_extensions.slashed_extension 
 
 	/  shift 26
-	.  reduce 33 (src line 110)
+	.  reduce 35 (src line 121)
 
 	slashed_extension  goto 39
 
 state 25
-	slashed_extensions:  slashed_extension.    (35)
+	slashed_extensions:  slashed_extension.    (37)
 
-	.  reduce 35 (src line 113)
+	.  reduce 37 (src line 124)
 
 
 state 26
@@ -263,160 +263,190 @@ state 28
 state 29
 	predicate_object_list:  predicate_object.    (14)
 
-	.  reduce 14 (src line 82)
+	.  reduce 14 (src line 84)
 
 
 state 30
-	predicate_object:  predicate.object 
+	predicate_object:  predicate.object_list 
 	raw_subject: .    (12)
 
 	BNODE  shift 12
 	IDENTIFIER  shift 16
 	IRIREF  shift 13
-	STRING  shift 49
-	.  reduce 12 (src line 79)
+	STRING  shift 50
+	.  reduce 12 (src line 81)
 
 	qname  goto 14
 	raw_iriref  goto 11
 	slash_separated_name  goto 15
-	bnode  goto 45
-	description  goto 48
-	iriref  goto 47
-	literal  goto 46
-	object  goto 44
+	bnode  goto 46
+	description  goto 49
+	iriref  goto 48
+	literal  goto 47
+	object  goto 45
 	raw_subject  goto 8
 	subject  goto 7
+	object_list  goto 44
 
 state 31
 	predicate:  iriref.    (16)
 
-	.  reduce 16 (src line 86)
+	.  reduce 16 (src line 94)
 
 
 state 32
 	predicate:  A.    (17)
 
-	.  reduce 17 (src line 87)
+	.  reduce 17 (src line 95)
 
 
 state 33
 	predicate:  *.    (18)
 
-	.  reduce 18 (src line 88)
+	.  reduce 18 (src line 96)
 
 
 state 34
-	qname:  IDENTIFIER : identifier.    (32)
+	qname:  IDENTIFIER : identifier.    (34)
 
-	.  reduce 32 (src line 108)
+	.  reduce 34 (src line 119)
 
 
 state 35
-	identifier:  IDENTIFIER.    (37)
+	identifier:  IDENTIFIER.    (39)
 
-	.  reduce 37 (src line 117)
+	.  reduce 39 (src line 128)
 
 
 state 36
-	identifier:  A.    (38)
+	identifier:  A.    (40)
 
-	.  reduce 38 (src line 118)
+	.  reduce 40 (src line 129)
 
 
 state 37
-	identifier:  AS.    (39)
+	identifier:  AS.    (41)
 
-	.  reduce 39 (src line 119)
+	.  reduce 41 (src line 130)
 
 
 state 38
-	identifier:  NAME.    (40)
+	identifier:  NAME.    (42)
 
-	.  reduce 40 (src line 120)
+	.  reduce 42 (src line 131)
 
 
 state 39
-	slashed_extensions:  slashed_extensions slashed_extension.    (34)
+	slashed_extensions:  slashed_extensions slashed_extension.    (36)
 
-	.  reduce 34 (src line 112)
+	.  reduce 36 (src line 123)
 
 
 state 40
-	slashed_extension:  / identifier.    (36)
+	slashed_extension:  / identifier.    (38)
 
-	.  reduce 36 (src line 115)
+	.  reduce 38 (src line 126)
 
 
 state 41
 	name_decl:  NAME raw_iriref AS IDENTIFIER.    (6)
 
-	.  reduce 6 (src line 69)
+	.  reduce 6 (src line 71)
 
 
 state 42
 	description_body:  { predicate_object_list }.    (8)
 
-	.  reduce 8 (src line 73)
+	.  reduce 8 (src line 75)
 
 
 state 43
 	predicate_object_list:  predicate_object_list predicate_object.    (13)
 
-	.  reduce 13 (src line 81)
+	.  reduce 13 (src line 83)
 
 
 state 44
-	predicate_object:  predicate object.    (15)
+	predicate_object:  predicate object_list.    (15)
+	object_list:  object_list., object 
 
-	.  reduce 15 (src line 84)
+	,  shift 51
+	.  reduce 15 (src line 86)
 
 
 state 45
-	raw_subject:  bnode.    (11)
-	object:  bnode.    (19)
+	object_list:  object.    (20)
 
-	{  reduce 11 (src line 78)
-	.  reduce 19 (src line 90)
+	.  reduce 20 (src line 99)
 
 
 state 46
-	object:  literal.    (20)
+	raw_subject:  bnode.    (11)
+	object:  bnode.    (21)
 
-	.  reduce 20 (src line 91)
+	{  reduce 11 (src line 80)
+	.  reduce 21 (src line 101)
 
 
 state 47
-	raw_subject:  iriref.    (10)
-	object:  iriref.    (21)
+	object:  literal.    (22)
 
-	{  reduce 10 (src line 77)
-	.  reduce 21 (src line 92)
+	.  reduce 22 (src line 102)
 
 
 state 48
-	object:  description.    (22)
+	raw_subject:  iriref.    (10)
+	object:  iriref.    (23)
 
-	.  reduce 22 (src line 93)
+	{  reduce 10 (src line 79)
+	.  reduce 23 (src line 103)
 
 
 state 49
-	literal:  STRING.    (24)
-	literal:  STRING.@ IDENTIFIER 
-	literal:  STRING.DT iriref 
+	object:  description.    (24)
 
-	DT  shift 51
-	@  shift 50
-	.  reduce 24 (src line 97)
+	.  reduce 24 (src line 104)
 
 
 state 50
-	literal:  STRING @.IDENTIFIER 
+	literal:  STRING.    (26)
+	literal:  STRING.@ IDENTIFIER 
+	literal:  STRING.DT iriref 
 
-	IDENTIFIER  shift 52
-	.  error
+	DT  shift 53
+	@  shift 52
+	.  reduce 26 (src line 108)
 
 
 state 51
+	object_list:  object_list ,.object 
+	raw_subject: .    (12)
+
+	BNODE  shift 12
+	IDENTIFIER  shift 16
+	IRIREF  shift 13
+	STRING  shift 50
+	.  reduce 12 (src line 81)
+
+	qname  goto 14
+	raw_iriref  goto 11
+	slash_separated_name  goto 15
+	bnode  goto 46
+	description  goto 49
+	iriref  goto 48
+	literal  goto 47
+	object  goto 54
+	raw_subject  goto 8
+	subject  goto 7
+
+state 52
+	literal:  STRING @.IDENTIFIER 
+
+	IDENTIFIER  shift 55
+	.  error
+
+
+state 53
 	literal:  STRING DT.iriref 
 
 	IDENTIFIER  shift 16
@@ -426,29 +456,35 @@ state 51
 	qname  goto 14
 	raw_iriref  goto 11
 	slash_separated_name  goto 15
-	iriref  goto 53
+	iriref  goto 56
 
-state 52
-	literal:  STRING @ IDENTIFIER.    (25)
+state 54
+	object_list:  object_list , object.    (19)
 
-	.  reduce 25 (src line 98)
-
-
-state 53
-	literal:  STRING DT iriref.    (26)
-
-	.  reduce 26 (src line 99)
+	.  reduce 19 (src line 98)
 
 
-18 terminals, 22 nonterminals
-41 grammar rules, 54/2000 states
+state 55
+	literal:  STRING @ IDENTIFIER.    (27)
+
+	.  reduce 27 (src line 109)
+
+
+state 56
+	literal:  STRING DT iriref.    (28)
+
+	.  reduce 28 (src line 110)
+
+
+19 terminals, 23 nonterminals
+43 grammar rules, 57/2000 states
 0 shift/reduce, 0 reduce/reduce conflicts reported
-71 working sets used
-memory: parser 74/30000
+72 working sets used
+memory: parser 79/30000
 23 extra closures
-44 shift entries, 3 exceptions
-32 goto entries
-26 entries saved by goto default
-Optimizer space used: output 70/30000
-70 table entries, 0 zero
-maximum spread: 18, maximum offset: 51
+49 shift entries, 3 exceptions
+37 goto entries
+32 entries saved by goto default
+Optimizer space used: output 76/30000
+76 table entries, 0 zero
+maximum spread: 19, maximum offset: 53

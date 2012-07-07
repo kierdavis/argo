@@ -49,12 +49,14 @@
 %union{
     s string
     t argo.Term
+    tL []argo.Term
 }
 
 %token <s> A AS BNODE DT EOF IDENTIFIER IRIREF NAME STRING
 
 %type <s> identifier qname raw_iriref slash_separated_name slashed_extension slashed_extensions
 %type <t> bnode description iriref literal object predicate raw_subject subject
+%type <tL> object_list
 
 %%
 
@@ -81,11 +83,20 @@ raw_subject : iriref                                        {$$ = $1}
 predicate_object_list   : predicate_object_list predicate_object    
                         | predicate_object
 
-predicate_object    : predicate object                      {tripleChan <- argo.NewTriple(stack[len(stack) - 1].Subject, $1, $2)}
+predicate_object    : predicate object_list
+    {
+        subj := stack[len(stack) - 1].Subject
+        for _, obj := range $2 {
+            tripleChan <- argo.NewTriple(subj, $1, obj)
+        }
+    }
 
 predicate   : iriref                                        {$$ = $1}
             | A                                             {$$ = argo.A}
             | '*'                                           {$$ = argo.RDF.Get(fmt.Sprintf("_%d", stack[len(stack) - 1].NextItem)); stack[len(stack) - 1].NextItem++}
+
+object_list : object_list ',' object                        {$$ = append($1, $3)}
+            | object                                        {$$ = []argo.Term{$1}}
 
 object  : bnode                                             {$$ = $1}
         | literal                                           {$$ = $1}
