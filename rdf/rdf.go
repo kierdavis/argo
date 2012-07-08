@@ -43,8 +43,6 @@ var FormatNames = []string{
 	"squirtle",
 }
 
-var StdoutLock sync.Mutex
-
 type Args struct {
 	OutFile             string
 	URLs                []string
@@ -55,10 +53,15 @@ type Args struct {
 	RewriteBNodesPrefix string
 }
 
-func msg(style ansi.Attribute, format string, args ...interface{}) {
-	StdoutLock.Lock()
-	defer StdoutLock.Unlock()
+func init() {
+	ansi.UseMutex = true
 
+	squirtle.LogParseMsg = func(s string) {
+		ansi.Fprintf(os.Stderr, ansi.Blue, "squirtleparser: %s\n", s)
+	}
+}
+
+func msg(style ansi.Attribute, format string, args ...interface{}) {
 	ansi.Fprintf(os.Stderr, style, format, args...)
 }
 
@@ -169,13 +172,14 @@ func read(output chan *argo.Triple, errorOutput chan error, prefixMap map[string
 			msg(ansi.Blue, "Parsing '%s'...\n", url)
 			tripleChan := make(chan *argo.Triple)
 			errChan := make(chan error)
-			go parser(resp.Body, tripleChan, errChan, prefixMap)
 
 			wg.Add(1)
 			go func() {
 				pipe(tripleChan, output)
 				wg.Done()
 			}()
+
+			go parser(resp.Body, tripleChan, errChan, prefixMap)
 
 			err = <-errChan
 			if err != nil {
@@ -207,13 +211,14 @@ func read(output chan *argo.Triple, errorOutput chan error, prefixMap map[string
 				msg(ansi.Blue, "Parsing standard input...\n")
 				tripleChan := make(chan *argo.Triple)
 				errChan := make(chan error)
-				go parser(os.Stdin, tripleChan, errChan, prefixMap)
 
 				wg.Add(1)
 				go func() {
 					pipe(tripleChan, output)
 					wg.Done()
 				}()
+
+				go parser(os.Stdin, tripleChan, errChan, prefixMap)
 
 				err := <-errChan
 				if err != nil {

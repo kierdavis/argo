@@ -37,6 +37,8 @@ type stackEntry struct {
 	NextItem int
 }
 
+var LogParseMsg func(string)
+
 var parserMutex sync.Mutex
 
 var tripleChan chan *argo.Triple
@@ -46,7 +48,7 @@ var prefixMap map[string]string
 var names map[string]string
 var stack []stackEntry
 
-//line src/github.com/kierdavis/argo/squirtle/parser.y:49
+//line src/github.com/kierdavis/argo/squirtle/parser.y:52
 type yySymType struct {
 	yys int
 	s   string
@@ -81,9 +83,32 @@ const yyEofCode = 1
 const yyErrCode = 2
 const yyMaxDepth = 200
 
-//line src/github.com/kierdavis/argo/squirtle/parser.y:133
+//line src/github.com/kierdavis/argo/squirtle/parser.y:137
+
+func getName(name string) (uri string) {
+	uri, ok := names[name]
+	if ok {
+		return uri
+	}
+
+	if LogParseMsg != nil {
+		LogParseMsg("Looking up prefix '" + name + "'")
+	}
+
+	uri, err := argo.LookupPrefix(name)
+	if err == nil {
+		names[name] = uri
+		return uri
+	}
+
+	return ""
+}
 
 func addHash(s string) (r string) {
+	if s == "" {
+		return "#"
+	}
+
 	last := s[len(s)-1]
 	if last != '#' && last != '/' {
 		return s + "#"
@@ -93,6 +118,10 @@ func addHash(s string) (r string) {
 }
 
 func stripSlash(s string) (r string) {
+	if s == "" {
+		return ""
+	}
+
 	last := s[len(s)-1]
 	if last == '#' || last == '/' {
 		return s[:len(s)-1]
@@ -633,184 +662,185 @@ yydefault:
 	switch yynt {
 
 	case 1:
-		//line src/github.com/kierdavis/argo/squirtle/parser.y:63
+		//line src/github.com/kierdavis/argo/squirtle/parser.y:66
 		{
 			return 0
 		}
 	case 6:
-		//line src/github.com/kierdavis/argo/squirtle/parser.y:71
+		//line src/github.com/kierdavis/argo/squirtle/parser.y:74
 		{
 			names[yyS[yypt-0].s] = yyS[yypt-2].s
 			prefixMap[yyS[yypt-2].s] = yyS[yypt-0].s
 		}
 	case 7:
-		//line src/github.com/kierdavis/argo/squirtle/parser.y:73
+		//line src/github.com/kierdavis/argo/squirtle/parser.y:76
 		{
 			yyVAL.t = yyS[yypt-1].t
 			stack = stack[:len(stack)-1]
 		}
 	case 9:
-		//line src/github.com/kierdavis/argo/squirtle/parser.y:77
+		//line src/github.com/kierdavis/argo/squirtle/parser.y:80
 		{
 			yyVAL.t = yyS[yypt-0].t
 			stack = append(stack, stackEntry{yyVAL.t, 1})
 		}
 	case 10:
-		//line src/github.com/kierdavis/argo/squirtle/parser.y:79
+		//line src/github.com/kierdavis/argo/squirtle/parser.y:82
 		{
 			yyVAL.t = yyS[yypt-0].t
 		}
 	case 11:
-		//line src/github.com/kierdavis/argo/squirtle/parser.y:80
+		//line src/github.com/kierdavis/argo/squirtle/parser.y:83
 		{
 			yyVAL.t = yyS[yypt-0].t
 		}
 	case 12:
-		//line src/github.com/kierdavis/argo/squirtle/parser.y:81
+		//line src/github.com/kierdavis/argo/squirtle/parser.y:84
 		{
 			yyVAL.t = argo.NewAnonNode()
 		}
 	case 15:
-		//line src/github.com/kierdavis/argo/squirtle/parser.y:87
+		//line src/github.com/kierdavis/argo/squirtle/parser.y:90
 		{
 			subj := stack[len(stack)-1].Subject
+			pred := yyS[yypt-1].t
 			for _, obj := range yyS[yypt-0].tL {
-				tripleChan <- argo.NewTriple(subj, yyS[yypt-1].t, obj)
+				tripleChan <- argo.NewTriple(subj, pred, obj)
 			}
 		}
 	case 16:
-		//line src/github.com/kierdavis/argo/squirtle/parser.y:94
+		//line src/github.com/kierdavis/argo/squirtle/parser.y:98
 		{
 			yyVAL.t = yyS[yypt-0].t
 		}
 	case 17:
-		//line src/github.com/kierdavis/argo/squirtle/parser.y:95
+		//line src/github.com/kierdavis/argo/squirtle/parser.y:99
 		{
 			yyVAL.t = argo.A
 		}
 	case 18:
-		//line src/github.com/kierdavis/argo/squirtle/parser.y:96
+		//line src/github.com/kierdavis/argo/squirtle/parser.y:100
 		{
 			yyVAL.t = argo.RDF.Get(fmt.Sprintf("_%d", stack[len(stack)-1].NextItem))
 			stack[len(stack)-1].NextItem++
 		}
 	case 19:
-		//line src/github.com/kierdavis/argo/squirtle/parser.y:98
+		//line src/github.com/kierdavis/argo/squirtle/parser.y:102
 		{
 			yyVAL.tL = append(yyS[yypt-2].tL, yyS[yypt-0].t)
 		}
 	case 20:
-		//line src/github.com/kierdavis/argo/squirtle/parser.y:99
+		//line src/github.com/kierdavis/argo/squirtle/parser.y:103
 		{
 			yyVAL.tL = []argo.Term{yyS[yypt-0].t}
 		}
 	case 21:
-		//line src/github.com/kierdavis/argo/squirtle/parser.y:101
+		//line src/github.com/kierdavis/argo/squirtle/parser.y:105
 		{
 			yyVAL.t = yyS[yypt-0].t
 		}
 	case 22:
-		//line src/github.com/kierdavis/argo/squirtle/parser.y:102
+		//line src/github.com/kierdavis/argo/squirtle/parser.y:106
 		{
 			yyVAL.t = yyS[yypt-0].t
 		}
 	case 23:
-		//line src/github.com/kierdavis/argo/squirtle/parser.y:103
+		//line src/github.com/kierdavis/argo/squirtle/parser.y:107
 		{
 			yyVAL.t = yyS[yypt-0].t
 		}
 	case 24:
-		//line src/github.com/kierdavis/argo/squirtle/parser.y:104
+		//line src/github.com/kierdavis/argo/squirtle/parser.y:108
 		{
 			yyVAL.t = yyS[yypt-0].t
 		}
 	case 25:
-		//line src/github.com/kierdavis/argo/squirtle/parser.y:106
+		//line src/github.com/kierdavis/argo/squirtle/parser.y:110
 		{
 			yyVAL.t = argo.NewBlankNode(yyS[yypt-0].s)
 		}
 	case 26:
-		//line src/github.com/kierdavis/argo/squirtle/parser.y:108
+		//line src/github.com/kierdavis/argo/squirtle/parser.y:112
 		{
 			yyVAL.t = argo.NewLiteral(yyS[yypt-0].s)
 		}
 	case 27:
-		//line src/github.com/kierdavis/argo/squirtle/parser.y:109
+		//line src/github.com/kierdavis/argo/squirtle/parser.y:113
 		{
 			yyVAL.t = argo.NewLiteralWithLanguage(yyS[yypt-2].s, yyS[yypt-0].s)
 		}
 	case 28:
-		//line src/github.com/kierdavis/argo/squirtle/parser.y:110
+		//line src/github.com/kierdavis/argo/squirtle/parser.y:114
 		{
 			yyVAL.t = argo.NewLiteralWithDatatype(yyS[yypt-2].s, yyS[yypt-0].t)
 		}
 	case 29:
-		//line src/github.com/kierdavis/argo/squirtle/parser.y:112
+		//line src/github.com/kierdavis/argo/squirtle/parser.y:116
 		{
 			yyVAL.t = argo.NewResource(yyS[yypt-0].s)
 		}
 	case 30:
-		//line src/github.com/kierdavis/argo/squirtle/parser.y:114
+		//line src/github.com/kierdavis/argo/squirtle/parser.y:118
 		{
 			yyVAL.s = yyS[yypt-0].s
 		}
 	case 31:
-		//line src/github.com/kierdavis/argo/squirtle/parser.y:115
+		//line src/github.com/kierdavis/argo/squirtle/parser.y:119
 		{
 			yyVAL.s = yyS[yypt-0].s
 		}
 	case 32:
-		//line src/github.com/kierdavis/argo/squirtle/parser.y:116
+		//line src/github.com/kierdavis/argo/squirtle/parser.y:120
 		{
 			yyVAL.s = yyS[yypt-0].s
 		}
 	case 33:
-		//line src/github.com/kierdavis/argo/squirtle/parser.y:117
-		{
-			yyVAL.s = names[yyS[yypt-0].s]
-		}
-	case 34:
-		//line src/github.com/kierdavis/argo/squirtle/parser.y:119
-		{
-			yyVAL.s = addHash(names[yyS[yypt-2].s]) + yyS[yypt-0].s
-		}
-	case 35:
 		//line src/github.com/kierdavis/argo/squirtle/parser.y:121
 		{
-			yyVAL.s = stripSlash(names[yyS[yypt-1].s]) + yyS[yypt-0].s
+			yyVAL.s = getName(yyS[yypt-0].s)
+		}
+	case 34:
+		//line src/github.com/kierdavis/argo/squirtle/parser.y:123
+		{
+			yyVAL.s = addHash(getName(yyS[yypt-2].s)) + yyS[yypt-0].s
+		}
+	case 35:
+		//line src/github.com/kierdavis/argo/squirtle/parser.y:125
+		{
+			yyVAL.s = stripSlash(getName(yyS[yypt-1].s)) + yyS[yypt-0].s
 		}
 	case 36:
-		//line src/github.com/kierdavis/argo/squirtle/parser.y:123
+		//line src/github.com/kierdavis/argo/squirtle/parser.y:127
 		{
 			yyVAL.s = yyS[yypt-1].s + yyS[yypt-0].s
 		}
 	case 37:
-		//line src/github.com/kierdavis/argo/squirtle/parser.y:124
-		{
-			yyVAL.s = yyS[yypt-0].s
-		}
-	case 38:
-		//line src/github.com/kierdavis/argo/squirtle/parser.y:126
-		{
-			yyVAL.s = "/" + yyS[yypt-0].s
-		}
-	case 39:
 		//line src/github.com/kierdavis/argo/squirtle/parser.y:128
 		{
 			yyVAL.s = yyS[yypt-0].s
 		}
+	case 38:
+		//line src/github.com/kierdavis/argo/squirtle/parser.y:130
+		{
+			yyVAL.s = "/" + yyS[yypt-0].s
+		}
+	case 39:
+		//line src/github.com/kierdavis/argo/squirtle/parser.y:132
+		{
+			yyVAL.s = yyS[yypt-0].s
+		}
 	case 40:
-		//line src/github.com/kierdavis/argo/squirtle/parser.y:129
+		//line src/github.com/kierdavis/argo/squirtle/parser.y:133
 		{
 			yyVAL.s = yyS[yypt-0].s
 		}
 	case 41:
-		//line src/github.com/kierdavis/argo/squirtle/parser.y:130
+		//line src/github.com/kierdavis/argo/squirtle/parser.y:134
 		{
 			yyVAL.s = yyS[yypt-0].s
 		}
 	case 42:
-		//line src/github.com/kierdavis/argo/squirtle/parser.y:131
+		//line src/github.com/kierdavis/argo/squirtle/parser.y:135
 		{
 			yyVAL.s = yyS[yypt-0].s
 		}

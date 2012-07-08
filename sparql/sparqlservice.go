@@ -37,9 +37,7 @@ func (service SparqlService) do(form url.Values, accept string) (resp *http.Resp
 
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 
-	resp, err = EnsureOK(http.DefaultClient.Do(req))
-
-	return resp, err
+	return EnsureOK(http.DefaultClient.Do(req))
 }
 
 func (service SparqlService) Select(query string) (results *ResultParser, err error) {

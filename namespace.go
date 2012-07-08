@@ -26,6 +26,8 @@ import (
 	"strings"
 )
 
+var lookupCache = make(map[string]string)
+
 // A Namespace represents a namespace URI.
 type Namespace string
 
@@ -91,12 +93,12 @@ func NewNamespace(base string) (ns Namespace) {
 // The following code:
 // 
 //     ns := argo.NewNamespace("http://www.w3.org/1999/02/22-rdf-syntax-ns#")
-//     term := ns.Get("Seq")
+//     term := ns.Get("type")
 //     fmt.Println(term.String())
 // 
 // will output:
 // 
-//     <http://www.w3.org/1999/02/22-rdf-syntax-ns#Seq>
+//     <http://www.w3.org/1999/02/22-rdf-syntax-ns#type>
 //
 func (ns Namespace) Get(name string) (term Term) {
 	return NewResource(string(ns) + name)
@@ -105,6 +107,11 @@ func (ns Namespace) Get(name string) (term Term) {
 // Function LookupPrefix looks up the given prefix using the prefix.cc service and returns its
 // namespace URI.
 func LookupPrefix(prefix string) (uri string, err error) {
+	uri, ok := lookupCache[prefix]
+	if ok {
+		return uri, nil
+	}
+
 	reqURL := fmt.Sprintf("http://prefix.cc/%s.file.txt", prefix)
 
 	resp, err := http.Get(reqURL)
@@ -123,7 +130,11 @@ func LookupPrefix(prefix string) (uri string, err error) {
 
 		data := strings.Trim(string(dataBuffer), " \r\n\x00")
 		parts := strings.Split(data, "\t")
-		return parts[1], nil
+
+		uri = parts[1]
+		lookupCache[prefix] = uri
+
+		return uri, nil
 	}
 
 	return "", errors.New(fmt.Sprintf("HTTP request returned status %d", resp.StatusCode))

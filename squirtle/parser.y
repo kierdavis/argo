@@ -31,10 +31,13 @@
         "unicode/utf8"
     )
     
+    
     type stackEntry struct {
         Subject argo.Term
         NextItem int
     }
+    
+    var LogParseMsg func(string)
     
     var parserMutex sync.Mutex
     
@@ -86,8 +89,9 @@ predicate_object_list   : predicate_object_list predicate_object
 predicate_object    : predicate object_list
     {
         subj := stack[len(stack) - 1].Subject
+        pred := $1
         for _, obj := range $2 {
-            tripleChan <- argo.NewTriple(subj, $1, obj)
+            tripleChan <- argo.NewTriple(subj, pred, obj)
         }
     }
 
@@ -114,11 +118,11 @@ iriref  : raw_iriref                                        {$$ = argo.NewResour
 raw_iriref  : IRIREF                                        {$$ = $1}
             | qname                                         {$$ = $1}
             | slash_separated_name                          {$$ = $1}
-            | IDENTIFIER                                    {$$ = names[$1]}
+            | IDENTIFIER                                    {$$ = getName($1)}
 
-qname   : IDENTIFIER ':' identifier                         {$$ = addHash(names[$1]) + $3}
+qname   : IDENTIFIER ':' identifier                         {$$ = addHash(getName($1)) + $3}
 
-slash_separated_name    : IDENTIFIER slashed_extensions     {$$ = stripSlash(names[$1]) + $2}
+slash_separated_name    : IDENTIFIER slashed_extensions     {$$ = stripSlash(getName($1)) + $2}
 
 slashed_extensions  : slashed_extensions slashed_extension  {$$ = $1 + $2}
                     | slashed_extension                     {$$ = $1}
@@ -132,7 +136,30 @@ identifier  : IDENTIFIER                                    {$$ = $1}
 
 %%
 
+func getName(name string) (uri string) {
+    uri, ok := names[name]
+    if ok {
+        return uri
+    }
+    
+    if LogParseMsg != nil {
+        LogParseMsg("Looking up prefix '" + name + "'")
+    }
+    
+    uri, err := argo.LookupPrefix(name)
+    if err == nil {
+        names[name] = uri
+        return uri
+    }
+    
+    return ""
+}
+
 func addHash(s string) (r string) {
+    if s == "" {
+        return "#"
+    }
+    
     last := s[len(s) - 1]
     if last != '#' && last != '/' {
         return s + "#"
@@ -142,6 +169,10 @@ func addHash(s string) (r string) {
 }
 
 func stripSlash(s string) (r string) {
+    if s == "" {
+        return ""
+    }
+    
     last := s[len(s) - 1]
     if last == '#' || last == '/' {
         return s[:len(s) - 1]
