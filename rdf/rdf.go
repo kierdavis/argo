@@ -34,6 +34,8 @@ import (
 	"time"
 )
 
+var LookupCacheFile = filepath.Join(os.Getenv("HOME"), ".prefixes.gob")
+
 var TriplesProcessed uint
 var BNodesRewritten uint
 
@@ -287,12 +289,14 @@ func read(output chan *argo.Triple, errorOutput chan error, prefixMap map[string
 func rewriteBNode(termRef *argo.Term, prefix string) {
 	if bnode, ok := (*termRef).(*argo.BlankNode); ok {
 		*termRef = argo.NewResource(prefix + bnode.ID)
+		BNodesRewritten++
 	}
-
-	BNodesRewritten++
 }
 
 func main() {
+	argo.LoadLookupCache(LookupCacheFile)
+	defer argo.SaveLookupCache(LookupCacheFile)
+
 	startTime := time.Now()
 
 	args := &Args{

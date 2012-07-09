@@ -20,9 +20,11 @@
 package argo
 
 import (
+	"encoding/gob"
 	"errors"
 	"fmt"
 	"net/http"
+	"os"
 	"strings"
 )
 
@@ -138,4 +140,38 @@ func LookupPrefix(prefix string) (uri string, err error) {
 	}
 
 	return "", errors.New(fmt.Sprintf("HTTP request returned status %d", resp.StatusCode))
+}
+
+// Function LoadLookupCache loads the internal prefix lookup cache from the given file.
+func LoadLookupCache(cacheFile string) (err error) {
+	f, err := os.Open(cacheFile)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	dec := gob.NewDecoder(f)
+	err = dec.Decode(&lookupCache)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// Function SaveLookupCache saves the internal prefix lookup cache to the given file.
+func SaveLookupCache(cacheFile string) (err error) {
+	f, err := os.Create(cacheFile)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	enc := gob.NewEncoder(f)
+	err = enc.Encode(lookupCache)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

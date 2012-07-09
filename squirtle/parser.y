@@ -55,9 +55,9 @@
     tL []argo.Term
 }
 
-%token <s> A AS BNODE DT EOF IDENTIFIER IRIREF NAME STRING
+%token <s> A AS BNODE DECIMAL DOUBLE DT EOF FALSE IDENTIFIER INTEGER IRIREF NAME STRING TRUE
 
-%type <s> identifier qname raw_iriref slash_separated_name slashed_extension slashed_extensions
+%type <s> postfix_identifier qname raw_iriref slash_separated_name slashed_extension slashed_extensions
 %type <t> bnode description iriref literal object predicate raw_subject subject
 %type <tL> object_list
 
@@ -112,6 +112,11 @@ bnode   : BNODE IDENTIFIER                                  {$$ = argo.NewBlankN
 literal : STRING                                            {$$ = argo.NewLiteral($1)}
         | STRING '@' IDENTIFIER                             {$$ = argo.NewLiteralWithLanguage($1, $3)}
         | STRING DT iriref                                  {$$ = argo.NewLiteralWithDatatype($1, $3)}
+        | INTEGER                                           {$$ = argo.NewLiteralWithDatatype($1, argo.XSD.Get("integer"))}
+        | DECIMAL                                           {$$ = argo.NewLiteralWithDatatype($1, argo.XSD.Get("decimal"))}
+        | DOUBLE                                            {$$ = argo.NewLiteralWithDatatype($1, argo.XSD.Get("double"))}
+        | TRUE                                              {$$ = argo.NewLiteralWithDatatype("true", argo.XSD.Get("boolean"))}
+        | FALSE                                             {$$ = argo.NewLiteralWithDatatype("false", argo.XSD.Get("boolean"))}
 
 iriref  : raw_iriref                                        {$$ = argo.NewResource($1)}
 
@@ -120,19 +125,21 @@ raw_iriref  : IRIREF                                        {$$ = $1}
             | slash_separated_name                          {$$ = $1}
             | IDENTIFIER                                    {$$ = getName($1)}
 
-qname   : IDENTIFIER ':' identifier                         {$$ = addHash(getName($1)) + $3}
+qname   : IDENTIFIER ':' postfix_identifier                 {$$ = addHash(getName($1)) + $3}
 
 slash_separated_name    : IDENTIFIER slashed_extensions     {$$ = stripSlash(getName($1)) + $2}
 
 slashed_extensions  : slashed_extensions slashed_extension  {$$ = $1 + $2}
                     | slashed_extension                     {$$ = $1}
 
-slashed_extension   : '/' identifier                        {$$ = "/" + $2}
+slashed_extension   : '/' postfix_identifier                {$$ = "/" + $2}
 
-identifier  : IDENTIFIER                                    {$$ = $1}
+postfix_identifier  : IDENTIFIER                            {$$ = $1}
             | A                                             {$$ = $1}
             | AS                                            {$$ = $1}
+            | FALSE                                         {$$ = $1}
             | NAME                                          {$$ = $1}
+            | TRUE                                          {$$ = $1}
 
 %%
 
@@ -228,13 +235,58 @@ func (ll *lexer) Lex(lval *yySymType) (t int) {
         switch strings.ToLower(lval.s) {
         case "a":
             return A
+        
         case "as":
             return AS
+        
+        case "false":
+            return FALSE
+        
+        case "inf":
+            lval.s = "INF"
+            return DOUBLE
+        
         case "name":
             return NAME
+        
+        case "nan":
+            lval.s = "NaN"
+            return DOUBLE
+        
+        case "true":
+            return TRUE
         }
         
         return IDENTIFIER
+    
+    case unicode.IsDigit(r) || r == '-' || r == '+':
+        ll.Back()
+        ll.AcceptOneOf('+', '-')
+        
+        t = INTEGER
+        
+        digitFunc := func(r rune) bool {return '0' <= r && r <= '9'}
+        
+        ll.AcceptRun(digitFunc)
+        if ll.Accept('.') {
+            ll.AcceptRun(digitFunc)
+            t = DECIMAL
+        }
+        
+        if ll.AcceptOneOf('e', 'E') {
+            ll.AcceptOneOf('+', '-')
+            ll.AcceptRun(digitFunc)
+            t = DOUBLE
+        }
+        
+        p := ll.Peek()
+        if unicode.IsLetter(p) || ('0' <= p && p <= '9') {
+            ll.Next()
+            return ll.Lex(lval)
+        }
+        
+        lval.s = ll.GetToken()
+        return t
     
     case r == '<':
         ll.Discard()
@@ -322,6 +374,19 @@ func (ll *lexer) Peek() (r rune) {
 func (ll *lexer) Accept(r rune) (ok bool) {
     if ll.Next() == r {
         return true
+    }
+    
+    ll.Back()
+    return false
+}
+
+func (ll *lexer) AcceptOneOf(runes ...rune) (ok bool) {
+    c := ll.Next()
+    
+    for _, r := range runes {
+        if r == c {
+            return true
+        }
     }
     
     ll.Back()
