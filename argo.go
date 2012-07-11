@@ -23,6 +23,7 @@ package argo
 
 import (
 	"io"
+	"path"
 	"strings"
 )
 
@@ -57,6 +58,172 @@ type Store interface {
 	// nil value passed means that the check for this term is skipped; else the triples returned
 	// must have the same terms as the corresponding arguments.
 	Filter(Term, Term, Term) chan *Triple
+}
+
+// A Format represents an RDF format.
+type Format struct {
+	// An identifier for this format (e.g. 'ntriples').
+	ID string
+
+	// A human-readable name for this format (e.g. 'N-Triples').
+	Name string
+
+	// The preferred MIME type for this format.
+	PreferredMIMEType string
+
+	// The preferred file extension for this format.
+	PreferredExtension string
+
+	// Other MIME types that will be mapped to this format.
+	OtherMIMETypes []string
+
+	// Other file extensions that will be mapped to this format.
+	OtherExtensions []string
+
+	// The Parser for this format.
+	Parser Parser
+
+	// The Serializer for this format.
+	Serializer Serializer
+}
+
+// A map from format IDs to the corresponding Format objects.
+var Formats = map[string]*Format{
+	// http://www.w3.org/TR/REC-rdf-syntax/
+	"rdfxml": &Format{
+		ID:                 "rdfxml",
+		Name:               "RDF/XML",
+		PreferredMIMEType:  "application/rdf+xml",
+		PreferredExtension: ".rdf",
+		OtherMIMETypes:     []string{"application/xml", "text/xml"},
+		OtherExtensions:    []string{".xml"},
+		Parser:             ParseRDFXML,
+		Serializer:         SerializeRDFXML,
+	},
+
+	// http://www.w3.org/2001/sw/RDFCore/ntriples/
+	"ntriples": &Format{
+		ID:                 "ntriples",
+		Name:               "N-triples",
+		PreferredMIMEType:  "text/plain",
+		PreferredExtension: ".nt",
+		OtherMIMETypes:     []string{"text/ntriples", "text/x-ntriples"},
+		OtherExtensions:    []string{".txt"},
+		Parser:             ParseNTriples,
+		Serializer:         SerializeNTriples,
+	},
+
+	// http://docs.api.talis.com/platform-api/output-types/rdf-json
+	"json": &Format{
+		ID:                 "json",
+		Name:               "RDF/JSON",
+		PreferredMIMEType:  "application/rdf+json",
+		PreferredExtension: ".json",
+		OtherMIMETypes:     []string{"application/json", "text/json"},
+		OtherExtensions:    []string{},
+		Parser:             nil,
+		Serializer:         SerializeJSON,
+	},
+
+	// http://www.w3.org/TeamSubmission/turtle/
+	"turtle": &Format{
+		ID:                 "turtle",
+		Name:               "Turtle",
+		PreferredMIMEType:  "text/turtle",
+		PreferredExtension: ".ttl",
+		OtherMIMETypes:     []string{},
+		OtherExtensions:    []string{},
+		Parser:             nil,
+		Serializer:         SerializeTurtle,
+	},
+
+	// No specs yet
+	"rdfz": &Format{
+		ID:                 "rdfz",
+		Name:               "RDFZ",
+		PreferredMIMEType:  "application/x-rdf-compressed",
+		PreferredExtension: ".rdfz",
+		OtherMIMETypes:     []string{},
+		OtherExtensions:    []string{},
+		Parser:             nil,
+		Serializer:         SerializeRDFZ,
+	},
+
+	// No specs yet
+	"squirtle": &Format{
+		ID:                 "squirtle",
+		Name:               "Squirtle",
+		PreferredMIMEType:  "text/x-squirtle",
+		PreferredExtension: ".squirtle",
+		OtherMIMETypes:     []string{},
+		OtherExtensions:    []string{".sqtl"},
+		Parser:             ParseSquirtle,
+		Serializer:         SerializeSquirtle,
+	},
+}
+
+// Function Parsers returns a map of format IDs to Formats that have an associated parser.
+func Parsers() (parsers map[string]*Format) {
+	parsers = make(map[string]*Format, 0)
+
+	for id, format := range Formats {
+		if format.Parser != nil {
+			parsers[id] = format
+		}
+	}
+
+	return parsers
+}
+
+// Function Serializers returns a map of format IDs to Formats that have an associated serializer.
+func Serializers() (serializers map[string]*Format) {
+	serializers = make(map[string]*Format, 0)
+
+	for id, format := range Formats {
+		if format.Parser != nil {
+			serializers[id] = format
+		}
+	}
+
+	return serializers
+}
+
+// Function FormatFromMIMEType takes a MIME type and returns the Format it represents, or nil if it
+// could not be determined.
+func FormatFromMIMEType(mimeType string) (format *Format) {
+	for _, format = range Formats {
+		if format.PreferredMIMEType == mimeType {
+			return format
+		}
+
+		for _, m := range format.OtherMIMETypes {
+			if m == mimeType {
+				return format
+			}
+		}
+	}
+
+	return nil
+}
+
+// Function FormatFromFilename takes a filename and returns a Format based on its extension, or nil
+// if it could not be determined.
+func FormatFromFilename(filename string) (format *Format) {
+	ext := path.Ext(filename)
+
+	for _, format = range Formats {
+		if format.PreferredExtension == ext {
+			return format
+		}
+
+		for _, e := range format.OtherExtensions {
+			if e == ext {
+				return format
+			}
+		}
+	}
+
+	return nil
 }
 
 // Function SplitPrefix takes a given URI and splits it into a base URI and a local name (suitable

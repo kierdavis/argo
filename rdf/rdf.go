@@ -23,13 +23,11 @@ import (
 	"fmt"
 	"github.com/kierdavis/ansi"
 	"github.com/kierdavis/argo"
-	"github.com/kierdavis/argo/squirtle"
 	"github.com/kierdavis/argparse"
 	"io"
 	"net/http"
 	"os"
 	"path/filepath"
-	"strings"
 	"sync"
 	"time"
 )
@@ -39,10 +37,16 @@ var LookupCacheFile = filepath.Join(os.Getenv("HOME"), ".prefixes.gob")
 var TriplesProcessed uint
 var BNodesRewritten uint
 
-var FormatNames = []string{
-	"ntriples",
-	"rdfxml",
-	"squirtle",
+var Parsers, Serializers []string
+
+func init() {
+	for id := range argo.Parsers() {
+		Parsers = append(Parsers, id)
+	}
+
+	for id := range argo.Serializers() {
+		Serializers = append(Serializers, id)
+	}
 }
 
 type Args struct {
@@ -52,15 +56,12 @@ type Args struct {
 	OutputFormat        string
 	InputFormat         string
 	StdinFormat         string
+	ShowFormats         bool
 	RewriteBNodesPrefix string
 }
 
 func init() {
 	ansi.UseMutex = true
-
-	squirtle.LogParseMsg = func(s string) {
-		ansi.Fprintf(os.Stderr, ansi.Blue, "squirtleparser: %s\n", s)
-	}
 }
 
 func msg(style ansi.Attribute, format string, args ...interface{}) {
@@ -71,68 +72,6 @@ func pipe(src chan *argo.Triple, dest chan *argo.Triple) {
 	for triple := range src {
 		dest <- triple
 	}
-}
-
-func determineParserByFormat(format string) (parser argo.Parser, mimetype string) {
-	switch format {
-	case "ntriples":
-		return argo.ParseNTriples, "text/plain"
-
-	case "squirtle":
-		return squirtle.ParseSquirtle, "text/x-squirtle"
-	}
-
-	return argo.ParseRDFXML, "application/rdf+xml"
-}
-
-func determineParserByExtension(path string) (parser argo.Parser, mimetype string) {
-	if strings.HasSuffix(path, ".nt") || strings.HasSuffix(path, ".txt") {
-		return argo.ParseNTriples, "text/plain"
-	}
-
-	if strings.HasSuffix(path, ".squirtle") {
-		return squirtle.ParseSquirtle, "text/x-squirtle"
-	}
-
-	return argo.ParseRDFXML, "application/rdf+xml"
-}
-
-func determineSerializerByFormat(format string) (serializer argo.Serializer) {
-	switch format {
-	case "ntriples":
-		return argo.SerializeNTriples
-
-	case "turtle":
-		return argo.SerializeTurtle
-
-	case "json":
-		return argo.SerializeJSON
-
-	case "squirtle":
-		return squirtle.SerializeSquirtle
-	}
-
-	return argo.SerializeRDFXML
-}
-
-func determineSerializerByExtension(path string) (serializer argo.Serializer) {
-	if strings.HasSuffix(path, ".nt") || strings.HasSuffix(path, ".txt") {
-		return argo.SerializeNTriples
-	}
-
-	if strings.HasSuffix(path, ".ttl") {
-		return argo.SerializeTurtle
-	}
-
-	if strings.HasSuffix(path, ".json") {
-		return argo.SerializeJSON
-	}
-
-	if strings.HasSuffix(path, ".squirtle") {
-		return squirtle.SerializeSquirtle
-	}
-
-	return argo.SerializeRDFXML
 }
 
 func read(output chan *argo.Triple, errorOutput chan error, prefixMap map[string]string, args *Args) {
@@ -146,13 +85,12 @@ func read(output chan *argo.Triple, errorOutput chan error, prefixMap map[string
 		go func() {
 			defer wg.Done()
 
-			var parser argo.Parser
-			var mimetype string
+			var format *argo.Format
 
 			if args.InputFormat != "" {
-				parser, mimetype = determineParserByFormat(args.InputFormat)
+				format = argo.Formats[args.InputFormat]
 			} else {
-				parser, mimetype = determineParserByExtension(url)
+				format = argo.FormatFromFilename(url)
 			}
 
 			req, err := http.NewRequest("GET", url, nil)
@@ -161,7 +99,7 @@ func read(output chan *argo.Triple, errorOutput chan error, prefixMap map[string
 				return
 			}
 
-			req.Header.Add("Accept", mimetype)
+			req.Header.Add("Accept", format.PreferredMIMEType)
 
 			msg(ansi.Blue, "Fetching '%s'...\n", url)
 			resp, err := http.DefaultClient.Do(req)
@@ -181,7 +119,7 @@ func read(output chan *argo.Triple, errorOutput chan error, prefixMap map[string
 				wg.Done()
 			}()
 
-			go parser(resp.Body, tripleChan, errChan, prefixMap)
+			go format.Parser(resp.Body, tripleChan, errChan, prefixMap)
 
 			err = <-errChan
 			if err != nil {
@@ -200,14 +138,14 @@ func read(output chan *argo.Triple, errorOutput chan error, prefixMap map[string
 			go func() {
 				defer wg.Done()
 
-				var parser argo.Parser
+				var format *argo.Format
 
 				if args.StdinFormat != "" {
-					parser, _ = determineParserByFormat(args.StdinFormat)
+					format = argo.Formats[args.StdinFormat]
 				} else if args.InputFormat != "" {
-					parser, _ = determineParserByFormat(args.InputFormat)
+					format = argo.Formats[args.InputFormat]
 				} else {
-					parser = argo.ParseRDFXML
+					format = argo.Formats["rdfxml"]
 				}
 
 				msg(ansi.Blue, "Parsing standard input...\n")
@@ -220,7 +158,7 @@ func read(output chan *argo.Triple, errorOutput chan error, prefixMap map[string
 					wg.Done()
 				}()
 
-				go parser(os.Stdin, tripleChan, errChan, prefixMap)
+				go format.Parser(os.Stdin, tripleChan, errChan, prefixMap)
 
 				err := <-errChan
 				if err != nil {
@@ -242,12 +180,12 @@ func read(output chan *argo.Triple, errorOutput chan error, prefixMap map[string
 				go func() {
 					defer wg.Done()
 
-					var parser argo.Parser
+					var format *argo.Format
 
 					if args.InputFormat != "" {
-						parser, _ = determineParserByFormat(args.InputFormat)
+						format = argo.Formats[args.InputFormat]
 					} else {
-						parser, _ = determineParserByExtension(match)
+						format = argo.FormatFromFilename(match)
 					}
 
 					f, err := os.Open(match)
@@ -267,7 +205,7 @@ func read(output chan *argo.Triple, errorOutput chan error, prefixMap map[string
 						wg.Done()
 					}()
 
-					go parser(f, tripleChan, errChan, prefixMap)
+					go format.Parser(f, tripleChan, errChan, prefixMap)
 
 					err = <-errChan
 					if err != nil {
@@ -306,16 +244,33 @@ func main() {
 	p := argparse.New("A tool for manipulating RDF files.")
 	p.Option('o', "output", "OutFile", 1, argparse.Store, "FILENAME", "The file to write output to. Default: standard output.")
 	p.Option('u', "url", "URLs", 1, argparse.Append, "URL", "A URL to download from and add to the graph. Can be used multiple times. Default: no URLs will be downloaded.")
-	p.Option('O', "output-format", "OutputFormat", 1, argparse.Choice(argparse.Store, FormatNames...), "FORMAT", "The format to write output to. Default: determine by the file extension, or fall back to rdfxml if unavailable.")
-	p.Option('I', "input-format", "InputFormat", 1, argparse.Choice(argparse.Store, FormatNames...), "FORMAT", "The format to parse all input sources as. Default: determine by the file extension, or fall back to rdfxml if unavailable.")
-	p.Option('i', "stdin-format", "StdinFormat", 1, argparse.Choice(argparse.Store, FormatNames...), "FORMAT", "The format to parse stdin as. The formats for all other sources (files and URLs) are still determined by their file extensions. Default: rdfxml.")
-	p.Option(0, "rewrite-bnodes", "RewriteBNodesPrefix", 1, argparse.Store, "URIPREFIX", "Replace all blank nodes with a URI reference consisting of the given prefix and the blank node's identifier. Example (--rewrite-bnodes http://example.org/bnodes/) _:foobar -> http://example.org/bnodes/foobar. Default: no rewriting.")
+	p.Option('I', "input-format", "InputFormat", 1, argparse.Choice(argparse.Store, Parsers...), "FORMAT", "The format to parse all input sources as. Default: determine by the file extension, or fall back to rdfxml if unavailable.")
+	p.Option('i', "stdin-format", "StdinFormat", 1, argparse.Choice(argparse.Store, Parsers...), "FORMAT", "The format to parse stdin as. The formats for all other sources (files and URLs) are still determined by their file extensions. Default: rdfxml.")
+	p.Option('O', "output-format", "OutputFormat", 1, argparse.Choice(argparse.Store, Serializers...), "FORMAT", "The format to write output to. Default: determine by the file extension, or fall back to rdfxml if unavailable.")
+	p.Option('F', "formats", "ShowFormats", 0, argparse.StoreConst(true), "", "Display a list of formats.")
+	p.Option('r', "rewrite-bnodes", "RewriteBNodesPrefix", 1, argparse.Store, "URIPREFIX", "Replace all blank nodes with a URI reference consisting of the given prefix and the blank node's identifier. Example (--rewrite-bnodes http://example.org/bnodes/) _:foobar -> http://example.org/bnodes/foobar. Default: no rewriting.")
 	p.Argument("Files", argparse.ZeroOrMore, argparse.Store, "filename", "Files to parse and add to the graph.")
 	err := p.Parse(args)
 
 	if err != nil {
 		ansi.Fprintf(os.Stderr, ansi.RedBold, "Error when parsing arguments: %s\n", err.Error())
 		os.Exit(1)
+	}
+
+	if args.ShowFormats {
+		fmt.Printf("Input formats:\n")
+
+		for id, format := range argo.Parsers() {
+			fmt.Printf("  %s - %s\n", id, format.Name)
+		}
+
+		fmt.Printf("\nOutput formats:\n")
+
+		for id, format := range argo.Serializers() {
+			fmt.Printf("  %s - %s\n", id, format.Name)
+		}
+
+		return
 	}
 
 	// =============================================================================================
@@ -359,11 +314,10 @@ func main() {
 	// =============================================================================================
 
 	var output io.Writer
-	var serializer argo.Serializer
+	format := argo.Formats["rdfxml"]
 
 	if args.OutFile == "-" {
 		output = os.Stdout
-		serializer = argo.SerializeRDFXML
 
 	} else {
 		output, err = os.Create(args.OutFile)
@@ -372,15 +326,15 @@ func main() {
 			os.Exit(1)
 		}
 
-		serializer = determineSerializerByExtension(args.OutFile)
+		format = argo.FormatFromFilename(args.OutFile)
 	}
 
 	if args.OutputFormat != "" {
-		serializer = determineSerializerByFormat(args.OutputFormat)
+		format = argo.Formats[args.OutputFormat]
 	}
 
 	msg(ansi.Blue, "Serializing...\n")
-	err = graph.Serialize(serializer, output)
+	err = graph.Serialize(format.Serializer, output)
 
 	if err != nil {
 		ansi.Fprintf(os.Stderr, ansi.RedBold, "Error when serializing: %s\n", args.OutFile, err.Error())

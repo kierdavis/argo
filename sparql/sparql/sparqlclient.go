@@ -7,7 +7,6 @@ import (
 	"github.com/kierdavis/argo"
 	"github.com/kierdavis/argo/fuseki"
 	"github.com/kierdavis/argo/sparql"
-	"github.com/kierdavis/argo/squirtle"
 	"github.com/kierdavis/argparse"
 	"io"
 	"os"
@@ -182,7 +181,7 @@ func main() {
 
 	stdinReader := bufio.NewReader(os.Stdin)
 	prefixes := make(map[string]string) // Prefix -> Base URI
-	serializer := argo.SerializeRDFXML
+	format := argo.Formats["rdfxml"]
 
 mainloop:
 	for {
@@ -253,7 +252,7 @@ mainloop:
 			updateRev(graph.Prefixes, prefixes)
 
 			ansi.AttrOn(ansi.Cyan)
-			graph.Serialize(serializer, os.Stdout)
+			graph.Serialize(format.Serializer, os.Stdout)
 			ansi.AttrOff(ansi.Cyan)
 
 		case "INSERT", "DELETE", "LOAD", "CLEAR", "CREATE", "DROP", "COPY", "MOVE", "ADD":
@@ -265,25 +264,13 @@ mainloop:
 			ansi.Println(ansi.GreenBold, "OK")
 
 		case "FORMAT":
-			format := strings.ToLower(line[spacePos+1:])
-
-			switch format {
-			case "xml", "rdfxml":
-				serializer = argo.SerializeRDFXML
-
-			case "nt", "ntriples":
-				serializer = argo.SerializeNTriples
-
-			case "ttl", "turtle":
-				serializer = argo.SerializeTurtle
-
-			case "sq", "squirtle":
-				serializer = squirtle.SerializeSquirtle
-
-			default:
-				ansi.Fprintf(os.Stderr, ansi.RedBold, "Invalid format: %s\n", format)
-				continue mainloop
+			formatName := strings.ToLower(line[spacePos+1:])
+			newFormat, ok := argo.Formats[formatName]
+			if !ok {
+				ansi.Fprintf(os.Stderr, ansi.RedBold, "Invalid format: %s\n", formatName)
 			}
+
+			format = newFormat
 
 		default:
 			ansi.Fprintf(os.Stderr, ansi.RedBold, "Invalid command: %s\n", verb)

@@ -1,22 +1,21 @@
-package squirtle
+package argo
 
 import (
 	"fmt"
-	"github.com/kierdavis/argo"
 	"io"
 )
 
-func SerializeSquirtle(w io.Writer, tripleChan chan *argo.Triple, errChan chan error, prefixes map[string]string) {
+func SerializeSquirtle(w io.Writer, tripleChan chan *Triple, errChan chan error, prefixes map[string]string) {
 	defer close(errChan)
 
 	var err error
 
-	triplesBySubject := make(map[string][]*argo.Triple)
+	triplesBySubject := make(map[string][]*Triple)
 
-	encodeTerm := func(iterm argo.Term) (s string) {
+	encodeTerm := func(iterm Term) (s string) {
 		switch term := iterm.(type) {
-		case *argo.Resource:
-			base, local := argo.SplitPrefix(term.URI)
+		case *Resource:
+			base, local := SplitPrefix(term.URI)
 			prefix, ok := prefixes[base]
 			if ok {
 				return fmt.Sprintf("%s:%s", prefix, local)
@@ -24,19 +23,19 @@ func SerializeSquirtle(w io.Writer, tripleChan chan *argo.Triple, errChan chan e
 				return fmt.Sprintf("<%s>", term.URI)
 			}
 
-		case *argo.Literal:
+		case *Literal:
 			return term.String()
 
-		case *argo.BlankNode:
+		case *BlankNode:
 			return term.String()
 		}
 
 		return ""
 	}
 
-	var describe func(string, []*argo.Triple, string) bool
+	var describe func(string, []*Triple, string) bool
 
-	describe = func(subject string, triples []*argo.Triple, ind string) (r bool) {
+	describe = func(subject string, triples []*Triple, ind string) (r bool) {
 		_, err = fmt.Fprintf(w, "%s {\n", subject)
 		if err != nil {
 			errChan <- err

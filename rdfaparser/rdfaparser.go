@@ -27,6 +27,19 @@ import (
 	"strings"
 )
 
+func init() {
+	argo.Formats["rdfa"] = &argo.Format{
+		ID:                 "rdfa",
+		Name:               "RDFA",
+		PreferredMIMEType:  "text/html",
+		PreferredExtension: ".html",
+		OtherMIMETypes:     []string{"text/xhtml"},
+		OtherExtensions:    []string{".htm"},
+		Parser:             ParseRDFA,
+		Serializer:         nil,
+	}
+}
+
 func getAttr(node *h5.Node, name string) (value string, ok bool) {
 	for _, attr := range node.Attr {
 		if attr.Name == name {
@@ -170,4 +183,8 @@ func NewRDFAParser(documentURI string) (p argo.Parser) {
 
 		traverseNode(p.Tree(), tripleChan, argo.NewResource(documentURI), "", make(map[string]string), prefixes)
 	}
+}
+
+func ParseRDFA(r io.Reader, tripleChan chan *argo.Triple, errChan chan error, prefixes map[string]string) {
+	NewRDFAParser("")(r, tripleChan, errChan, prefixes)
 }
