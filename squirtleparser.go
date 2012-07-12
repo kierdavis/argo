@@ -25,6 +25,8 @@ import (
 	"bufio"
 	"fmt"
 	"io"
+	"net/http"
+	"os"
 	"strings"
 	"sync"
 	"unicode"
@@ -68,7 +70,7 @@ var sqtlNames map[string]string
 var sqtlTemplates map[string]*sqtlTemplate
 var sqtlStack []sqtlStackEntry
 
-//line src/github.com/kierdavis/argo/squirtleparser.y:72
+//line src/github.com/kierdavis/argo/squirtleparser.y:74
 type sqtlSymType struct {
 	yys int
 	s   string
@@ -86,15 +88,16 @@ const DT = 57351
 const EOF = 57352
 const FALSE = 57353
 const IDENTIFIER = 57354
-const INTEGER = 57355
-const IRIREF = 57356
-const IS = 57357
-const NAME = 57358
-const NEW = 57359
-const STRING = 57360
-const TEMPLATE = 57361
-const TRUE = 57362
-const VAR = 57363
+const INCLUDE = 57355
+const INTEGER = 57356
+const IRIREF = 57357
+const IS = 57358
+const NAME = 57359
+const NEW = 57360
+const STRING = 57361
+const TEMPLATE = 57362
+const TRUE = 57363
+const VAR = 57364
 
 var sqtlToknames = []string{
 	"A_KWD",
@@ -106,6 +109,7 @@ var sqtlToknames = []string{
 	"EOF",
 	"FALSE",
 	"IDENTIFIER",
+	"INCLUDE",
 	"INTEGER",
 	"IRIREF",
 	"IS",
@@ -122,7 +126,7 @@ const sqtlEofCode = 1
 const sqtlErrCode = 2
 const sqtlMaxDepth = 200
 
-//line src/github.com/kierdavis/argo/squirtleparser.y:271
+//line src/github.com/kierdavis/argo/squirtleparser.y:316
 
 func getName(name string) (uri string) {
 	uri, ok := sqtlNames[name]
@@ -219,6 +223,9 @@ func (ll *lexer) Lex(lval *sqtlSymType) (t int) {
 
 		case "false":
 			return FALSE
+
+		case "include":
+			return INCLUDE
 
 		case "inf":
 			lval.s = "INF"
@@ -453,133 +460,124 @@ func ParseSquirtle(r io.Reader, tripleChan_ chan *Triple, errChan_ chan error, p
 
 //line yacctab:1
 var sqtlExca = []int{
-	-1, 0,
-	22, 28,
-	-2, 24,
 	-1, 1,
 	1, -1,
 	-2, 0,
-	-1, 2,
-	22, 28,
-	-2, 24,
-	-1, 41,
-	22, 28,
-	-2, 24,
 	-1, 65,
-	15, 29,
-	22, 29,
-	-2, 41,
-	-1, 66,
-	15, 30,
-	22, 30,
-	-2, 42,
-	-1, 68,
-	15, 31,
-	22, 31,
+	26, 23,
+	-2, 31,
+	-1, 70,
+	16, 32,
+	18, 32,
+	23, 32,
 	-2, 44,
-	-1, 81,
-	22, 28,
-	25, 20,
-	-2, 24,
-	-1, 82,
-	22, 28,
-	-2, 24,
-	-1, 95,
-	22, 28,
-	-2, 24,
+	-1, 71,
+	16, 33,
+	18, 33,
+	23, 33,
+	-2, 45,
+	-1, 73,
+	16, 34,
+	18, 34,
+	23, 34,
+	-2, 47,
 }
 
-const sqtlNprod = 75
+const sqtlNprod = 78
 const sqtlPrivate = 57344
 
 var sqtlTokenNames []string
 var sqtlStates []string
 
-const sqtlLast = 124
+const sqtlLast = 132
 
 var sqtlAct = []int{
 
-	64, 65, 15, 28, 15, 68, 17, 40, 17, 44,
-	49, 34, 37, 36, 37, 84, 95, 24, 86, 21,
-	82, 94, 85, 81, 47, 29, 20, 31, 61, 44,
-	93, 42, 45, 80, 83, 43, 24, 24, 21, 21,
-	91, 42, 32, 60, 48, 43, 20, 62, 59, 58,
-	77, 33, 45, 19, 73, 74, 30, 18, 76, 24,
-	72, 21, 51, 52, 38, 71, 27, 75, 20, 53,
-	50, 10, 3, 54, 55, 26, 39, 56, 57, 6,
-	4, 2, 89, 90, 19, 19, 92, 1, 25, 88,
-	24, 24, 21, 21, 8, 8, 96, 13, 13, 20,
-	20, 69, 5, 87, 5, 66, 16, 63, 16, 70,
-	7, 9, 7, 12, 41, 14, 67, 11, 79, 46,
-	78, 35, 23, 22,
+	69, 70, 16, 31, 16, 73, 18, 45, 18, 53,
+	49, 38, 41, 40, 49, 41, 91, 95, 25, 93,
+	89, 22, 25, 94, 92, 22, 65, 52, 21, 97,
+	66, 33, 21, 99, 50, 47, 90, 85, 50, 48,
+	34, 25, 35, 64, 22, 43, 47, 33, 29, 37,
+	48, 63, 67, 62, 36, 82, 20, 78, 79, 42,
+	25, 81, 25, 22, 77, 22, 88, 32, 12, 76,
+	20, 80, 21, 44, 26, 3, 25, 10, 27, 22,
+	7, 9, 74, 6, 14, 6, 21, 55, 56, 5,
+	96, 4, 2, 98, 57, 54, 100, 1, 87, 58,
+	59, 20, 86, 60, 61, 68, 11, 25, 10, 19,
+	22, 13, 9, 71, 17, 14, 17, 21, 46, 28,
+	30, 75, 8, 15, 8, 72, 84, 51, 83, 39,
+	24, 23,
 }
 var sqtlPact = []int{
 
-	79, -1000, 78, -1000, -1000, -1000, -1000, -1000, 24, 3,
-	44, 10, -1000, -1000, 27, -1000, -1000, -1000, -1000, 39,
-	-1000, -1000, -1000, -1000, -18, -1000, -1000, 59, -1000, 25,
-	0, 32, -1000, -1000, 58, -16, -1000, 58, 31, 5,
-	-1000, 47, -1000, -1000, -1000, -1000, 3, 12, -1, -1000,
-	-1000, -1000, -1000, -1000, -1000, -1000, -1000, -1000, -1000, -1000,
-	-1000, -1000, -1000, -6, -1000, -1000, -1000, -1000, -1000, -1000,
-	-1000, 6, -1000, -1000, -1000, -1000, -1000, -1000, -3, -8,
-	-1000, 47, 47, 28, 24, -1000, 9, -4, -10, -1000,
-	-1000, -1000, -1000, -1000, -1000, 47, -1000,
+	95, -1000, 64, -1000, -1000, -1000, -1000, -1000, -1000, 48,
+	29, 24, 42, -1000, -1000, -1000, -1000, -1000, -1000, -1000,
+	37, -1000, -1000, -1000, -1000, -19, -1000, -1000, 54, -1000,
+	-1000, -1000, 33, 10, -1000, -1000, 2, -1000, 83, -16,
+	-1000, 83, 31, 1, 6, -1000, 50, -1000, -1000, -1000,
+	-1000, 8, 15, -1000, -1000, -1000, -1000, -1000, -1000, -1000,
+	-1000, -1000, -1000, -1000, -1000, 50, -1000, -1000, -7, -1000,
+	-1000, -1000, -1000, -1000, -1000, -1000, 7, -1000, -1000, -1000,
+	-1000, -1000, -1000, -2, -8, -1000, -3, -10, -1000, 50,
+	17, 48, -1000, 11, -1000, 50, -1000, -1000, -1000, -1000,
+	-1000,
 }
 var sqtlPgo = []int{
 
-	0, 10, 123, 57, 122, 13, 121, 120, 119, 118,
-	109, 117, 105, 101, 1, 116, 115, 0, 114, 113,
-	111, 5, 107, 103, 89, 87, 81, 72, 80, 79,
-	3, 76, 71, 7,
+	0, 9, 131, 109, 130, 13, 129, 128, 127, 126,
+	121, 113, 82, 1, 125, 123, 0, 118, 111, 106,
+	5, 105, 102, 98, 97, 92, 75, 91, 89, 80,
+	3, 73, 68, 67, 7,
 }
 var sqtlR1 = []int{
 
-	0, 25, 26, 26, 27, 27, 27, 27, 28, 13,
-	30, 29, 32, 8, 8, 7, 7, 9, 9, 23,
-	23, 24, 24, 11, 11, 10, 20, 19, 19, 16,
-	16, 16, 31, 31, 33, 18, 18, 18, 18, 22,
-	22, 17, 17, 17, 17, 17, 17, 12, 15, 15,
-	15, 15, 15, 15, 15, 15, 21, 14, 3, 3,
-	3, 3, 2, 4, 6, 6, 5, 1, 1, 1,
-	1, 1, 1, 1, 1,
+	0, 24, 25, 25, 26, 26, 26, 26, 26, 28,
+	28, 27, 12, 30, 29, 32, 8, 8, 7, 7,
+	9, 9, 22, 22, 23, 23, 33, 33, 10, 19,
+	18, 18, 15, 15, 15, 31, 31, 34, 17, 17,
+	17, 17, 21, 21, 16, 16, 16, 16, 16, 16,
+	11, 14, 14, 14, 14, 14, 14, 14, 14, 20,
+	13, 3, 3, 3, 3, 2, 4, 6, 6, 5,
+	1, 1, 1, 1, 1, 1, 1, 1,
 }
 var sqtlR2 = []int{
 
-	0, 2, 2, 1, 1, 1, 1, 1, 4, 2,
-	3, 4, 1, 3, 0, 1, 0, 3, 1, 1,
-	0, 3, 1, 2, 0, 6, 1, 1, 0, 1,
-	1, 1, 2, 1, 2, 1, 1, 1, 1, 3,
-	1, 1, 1, 1, 1, 1, 1, 2, 1, 3,
-	3, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-	1, 1, 3, 2, 2, 1, 2, 1, 1, 1,
-	1, 1, 1, 1, 1,
+	0, 2, 2, 1, 1, 1, 1, 1, 1, 2,
+	2, 4, 2, 3, 4, 1, 3, 0, 1, 0,
+	3, 1, 1, 0, 3, 1, 1, 1, 6, 1,
+	1, 0, 1, 1, 1, 2, 1, 2, 1, 1,
+	1, 1, 3, 1, 1, 1, 1, 1, 1, 1,
+	2, 1, 3, 3, 1, 1, 1, 1, 1, 1,
+	1, 1, 1, 1, 1, 3, 2, 2, 1, 2,
+	1, 1, 1, 1, 1, 1, 1, 1,
 }
 var sqtlChk = []int{
 
-	-1000, -25, -26, -27, -28, -13, -29, -10, 16, -20,
-	-32, -11, -19, 19, -16, -14, -12, -21, -3, 6,
-	21, 14, -2, -4, 12, 10, -27, -3, -30, 22,
-	12, 17, 15, 12, 29, -6, -5, 30, 5, -31,
-	-33, -18, -14, -21, 4, 27, -8, 24, 12, -1,
-	12, 4, 5, 11, 15, 16, 19, 20, -5, -1,
-	12, 23, -33, -22, -17, -14, -12, -15, -21, -13,
-	-10, 18, 13, 7, 8, 20, 11, -30, -7, -9,
-	21, 24, 26, 28, 9, 25, 26, -23, -24, -17,
-	-17, 12, -14, 21, 25, 26, -17,
+	-1000, -24, -25, -26, -27, -28, -12, -29, -10, 17,
+	13, -19, -32, -18, 20, -15, -13, -11, -20, -3,
+	6, 22, 15, -2, -4, 12, 10, -26, -3, 19,
+	-3, -30, -33, 23, 16, 18, 12, 12, 30, -6,
+	-5, 31, 5, 12, -31, -34, -17, -13, -20, 4,
+	28, -8, 25, -1, 12, 4, 5, 11, 16, 17,
+	20, 21, -5, -1, 12, 25, 24, -34, -21, -16,
+	-13, -11, -14, -20, -12, -10, 19, 14, 7, 8,
+	21, 11, -30, -7, -9, 22, -22, -23, -16, 27,
+	29, 9, 26, 27, 26, 27, -16, 12, -13, 22,
+	-16,
 }
 var sqtlDef = []int{
 
-	-2, -2, -2, 3, 4, 5, 6, 7, 0, 0,
-	0, 0, 26, 12, 27, 29, 30, 31, 57, 0,
-	56, 58, 59, 60, 61, 1, 2, 0, 9, 0,
-	14, 0, 23, 47, 0, 63, 65, 0, 0, 0,
-	33, -2, 35, 36, 37, 38, 0, 16, 0, 62,
-	67, 68, 69, 70, 71, 72, 73, 74, 64, 66,
-	8, 10, 32, 34, 40, -2, -2, 43, -2, 45,
-	46, 48, 51, 52, 53, 54, 55, 11, 0, 15,
-	18, -2, -2, 0, 0, 13, 0, 0, 19, 22,
-	39, 49, 50, 17, 25, -2, 21,
+	31, -2, 31, 3, 4, 5, 6, 7, 8, 0,
+	0, 0, 0, 29, 15, 30, 32, 33, 34, 60,
+	0, 59, 61, 62, 63, 64, 1, 2, 0, 9,
+	10, 12, 0, 0, 26, 27, 17, 50, 0, 66,
+	68, 0, 0, 0, 0, 36, 31, 38, 39, 40,
+	41, 0, 19, 65, 70, 71, 72, 73, 74, 75,
+	76, 77, 67, 69, 11, -2, 13, 35, 37, 43,
+	-2, -2, 46, -2, 48, 49, 51, 54, 55, 56,
+	57, 58, 14, 0, 18, 21, 0, 22, 25, 31,
+	0, 0, 16, 0, 28, 31, 42, 52, 53, 20,
+	24,
 }
 var sqtlTok1 = []int{
 
@@ -587,20 +585,21 @@ var sqtlTok1 = []int{
 	3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
 	3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
 	3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
-	24, 25, 27, 3, 26, 3, 3, 30, 3, 3,
-	3, 3, 3, 3, 3, 3, 3, 3, 29, 3,
-	3, 3, 3, 3, 28, 3, 3, 3, 3, 3,
+	25, 26, 28, 3, 27, 3, 3, 31, 3, 3,
+	3, 3, 3, 3, 3, 3, 3, 3, 30, 3,
+	3, 3, 3, 3, 29, 3, 3, 3, 3, 3,
 	3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
 	3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
 	3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
 	3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
 	3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
-	3, 3, 3, 22, 3, 23,
+	3, 3, 3, 23, 3, 24,
 }
 var sqtlTok2 = []int{
 
 	2, 3, 4, 5, 6, 7, 8, 9, 10, 11,
 	12, 13, 14, 15, 16, 17, 18, 19, 20, 21,
+	22,
 }
 var sqtlTok3 = []int{
 	0,
@@ -831,24 +830,61 @@ sqtldefault:
 	switch sqtlnt {
 
 	case 1:
-		//line src/github.com/kierdavis/argo/squirtleparser.y:88
+		//line src/github.com/kierdavis/argo/squirtleparser.y:90
 		{
 			return 0
 		}
-	case 8:
-		//line src/github.com/kierdavis/argo/squirtleparser.y:98
+	case 9:
+		//line src/github.com/kierdavis/argo/squirtleparser.y:102
+		{
+			f, err := os.Open(sqtlS[sqtlpt-0].s)
+			if err != nil {
+				sqtlErrChan <- err
+				return 1
+			}
+
+			n := sqtlParse(newLexer(f))
+			f.Close()
+
+			if n != 0 {
+				return n
+			}
+		}
+	case 10:
+		//line src/github.com/kierdavis/argo/squirtleparser.y:118
+		{
+			resp, err := http.Get(sqtlS[sqtlpt-0].s)
+			if err != nil {
+				sqtlErrChan <- err
+				return 1
+			}
+
+			if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+				sqtlErrChan <- fmt.Errorf("HTTP request returned %s", resp.Status)
+				return 1
+			}
+
+			n := sqtlParse(newLexer(resp.Body))
+			resp.Body.Close()
+
+			if n != 0 {
+				return n
+			}
+		}
+	case 11:
+		//line src/github.com/kierdavis/argo/squirtleparser.y:138
 		{
 			sqtlNames[sqtlS[sqtlpt-0].s] = sqtlS[sqtlpt-2].s
 			sqtlPrefixMap[sqtlS[sqtlpt-2].s] = sqtlS[sqtlpt-0].s
 		}
-	case 9:
-		//line src/github.com/kierdavis/argo/squirtleparser.y:100
+	case 12:
+		//line src/github.com/kierdavis/argo/squirtleparser.y:140
 		{
 			sqtlVAL.t = sqtlS[sqtlpt-1].t
 			sqtlStack = sqtlStack[:len(sqtlStack)-1]
 		}
-	case 11:
-		//line src/github.com/kierdavis/argo/squirtleparser.y:105
+	case 14:
+		//line src/github.com/kierdavis/argo/squirtleparser.y:145
 		{
 			sqtlTemplates[sqtlS[sqtlpt-2].s] = &sqtlTemplate{
 				ArgNames: sqtlS[sqtlpt-1].sL,
@@ -857,73 +893,63 @@ sqtldefault:
 
 			sqtlStack = sqtlStack[:len(sqtlStack)-1]
 		}
-	case 12:
-		//line src/github.com/kierdavis/argo/squirtleparser.y:114
+	case 15:
+		//line src/github.com/kierdavis/argo/squirtleparser.y:154
 		{
 			sqtlStack = append(sqtlStack, sqtlStackEntry{1, nil, []*Triple{}})
 		}
-	case 13:
-		//line src/github.com/kierdavis/argo/squirtleparser.y:116
+	case 16:
+		//line src/github.com/kierdavis/argo/squirtleparser.y:156
 		{
 			sqtlVAL.sL = sqtlS[sqtlpt-1].sL
 		}
-	case 14:
-		//line src/github.com/kierdavis/argo/squirtleparser.y:117
+	case 17:
+		//line src/github.com/kierdavis/argo/squirtleparser.y:157
 		{
 			sqtlVAL.sL = []string{}
 		}
-	case 15:
-		//line src/github.com/kierdavis/argo/squirtleparser.y:119
+	case 18:
+		//line src/github.com/kierdavis/argo/squirtleparser.y:159
 		{
 			sqtlVAL.sL = sqtlS[sqtlpt-0].sL
 		}
-	case 16:
-		//line src/github.com/kierdavis/argo/squirtleparser.y:120
+	case 19:
+		//line src/github.com/kierdavis/argo/squirtleparser.y:160
 		{
 			sqtlVAL.sL = []string{}
 		}
-	case 17:
-		//line src/github.com/kierdavis/argo/squirtleparser.y:122
+	case 20:
+		//line src/github.com/kierdavis/argo/squirtleparser.y:162
 		{
 			sqtlVAL.sL = append(sqtlS[sqtlpt-2].sL, sqtlS[sqtlpt-0].s)
 		}
-	case 18:
-		//line src/github.com/kierdavis/argo/squirtleparser.y:123
+	case 21:
+		//line src/github.com/kierdavis/argo/squirtleparser.y:163
 		{
 			sqtlVAL.sL = []string{sqtlS[sqtlpt-0].s}
 		}
-	case 19:
-		//line src/github.com/kierdavis/argo/squirtleparser.y:125
+	case 22:
+		//line src/github.com/kierdavis/argo/squirtleparser.y:165
 		{
 			sqtlVAL.tL = sqtlS[sqtlpt-0].tL
 		}
-	case 20:
-		//line src/github.com/kierdavis/argo/squirtleparser.y:126
+	case 23:
+		//line src/github.com/kierdavis/argo/squirtleparser.y:166
 		{
 			sqtlVAL.tL = []Term{}
 		}
-	case 21:
-		//line src/github.com/kierdavis/argo/squirtleparser.y:128
+	case 24:
+		//line src/github.com/kierdavis/argo/squirtleparser.y:168
 		{
 			sqtlVAL.tL = append(sqtlS[sqtlpt-2].tL, sqtlS[sqtlpt-0].t)
 		}
-	case 22:
-		//line src/github.com/kierdavis/argo/squirtleparser.y:129
+	case 25:
+		//line src/github.com/kierdavis/argo/squirtleparser.y:169
 		{
 			sqtlVAL.tL = []Term{sqtlS[sqtlpt-0].t}
 		}
-	case 23:
-		//line src/github.com/kierdavis/argo/squirtleparser.y:131
-		{
-			sqtlVAL.t = sqtlS[sqtlpt-1].t
-		}
-	case 24:
-		//line src/github.com/kierdavis/argo/squirtleparser.y:132
-		{
-			sqtlVAL.t = NewAnonNode()
-		}
-	case 25:
-		//line src/github.com/kierdavis/argo/squirtleparser.y:135
+	case 28:
+		//line src/github.com/kierdavis/argo/squirtleparser.y:175
 		{
 			sqtlVAL.t = sqtlS[sqtlpt-5].t
 			templateName := sqtlS[sqtlpt-3].s
@@ -936,6 +962,11 @@ sqtldefault:
 			}
 
 			bindings := make(map[string]Term)
+
+			if len(template.ArgNames) != len(args) {
+				sqtlErrChan <- fmt.Errorf("Wrong number of arguments for template %s: expected %d, got %d", templateName, len(template.ArgNames), len(args))
+				return 1
+			}
 
 			for i, argName := range template.ArgNames {
 				bindings[argName] = args[i]
@@ -965,8 +996,8 @@ sqtldefault:
 				sqtlTripleChan <- NewTriple(subj, pred, obj)
 			}
 		}
-	case 26:
-		//line src/github.com/kierdavis/argo/squirtleparser.y:178
+	case 29:
+		//line src/github.com/kierdavis/argo/squirtleparser.y:223
 		{
 			sqtlVAL.t = sqtlS[sqtlpt-0].t
 
@@ -977,33 +1008,33 @@ sqtldefault:
 
 			sqtlStack = append(sqtlStack, sqtlStackEntry{1, sqtlVAL.t, template})
 		}
-	case 27:
-		//line src/github.com/kierdavis/argo/squirtleparser.y:189
-		{
-			sqtlVAL.t = sqtlS[sqtlpt-0].t
-		}
-	case 28:
-		//line src/github.com/kierdavis/argo/squirtleparser.y:190
-		{
-			sqtlVAL.t = NewAnonNode()
-		}
-	case 29:
-		//line src/github.com/kierdavis/argo/squirtleparser.y:192
-		{
-			sqtlVAL.t = sqtlS[sqtlpt-0].t
-		}
 	case 30:
-		//line src/github.com/kierdavis/argo/squirtleparser.y:193
+		//line src/github.com/kierdavis/argo/squirtleparser.y:234
 		{
 			sqtlVAL.t = sqtlS[sqtlpt-0].t
 		}
 	case 31:
-		//line src/github.com/kierdavis/argo/squirtleparser.y:194
+		//line src/github.com/kierdavis/argo/squirtleparser.y:235
+		{
+			sqtlVAL.t = NewAnonNode()
+		}
+	case 32:
+		//line src/github.com/kierdavis/argo/squirtleparser.y:237
+		{
+			sqtlVAL.t = sqtlS[sqtlpt-0].t
+		}
+	case 33:
+		//line src/github.com/kierdavis/argo/squirtleparser.y:238
 		{
 			sqtlVAL.t = sqtlS[sqtlpt-0].t
 		}
 	case 34:
-		//line src/github.com/kierdavis/argo/squirtleparser.y:200
+		//line src/github.com/kierdavis/argo/squirtleparser.y:239
+		{
+			sqtlVAL.t = sqtlS[sqtlpt-0].t
+		}
+	case 37:
+		//line src/github.com/kierdavis/argo/squirtleparser.y:245
 		{
 			top := sqtlStack[len(sqtlStack)-1]
 			subj := top.Subject
@@ -1021,198 +1052,198 @@ sqtldefault:
 
 			sqtlStack[len(sqtlStack)-1] = top
 		}
-	case 35:
-		//line src/github.com/kierdavis/argo/squirtleparser.y:218
+	case 38:
+		//line src/github.com/kierdavis/argo/squirtleparser.y:263
 		{
 			sqtlVAL.t = sqtlS[sqtlpt-0].t
 		}
-	case 36:
-		//line src/github.com/kierdavis/argo/squirtleparser.y:219
+	case 39:
+		//line src/github.com/kierdavis/argo/squirtleparser.y:264
 		{
 			sqtlVAL.t = sqtlS[sqtlpt-0].t
 		}
-	case 37:
-		//line src/github.com/kierdavis/argo/squirtleparser.y:220
+	case 40:
+		//line src/github.com/kierdavis/argo/squirtleparser.y:265
 		{
 			sqtlVAL.t = A
 		}
-	case 38:
-		//line src/github.com/kierdavis/argo/squirtleparser.y:221
+	case 41:
+		//line src/github.com/kierdavis/argo/squirtleparser.y:266
 		{
 			sqtlVAL.t = RDF.Get(fmt.Sprintf("_%d", sqtlStack[len(sqtlStack)-1].NextItem))
 			sqtlStack[len(sqtlStack)-1].NextItem++
 		}
-	case 39:
-		//line src/github.com/kierdavis/argo/squirtleparser.y:223
+	case 42:
+		//line src/github.com/kierdavis/argo/squirtleparser.y:268
 		{
 			sqtlVAL.tL = append(sqtlS[sqtlpt-2].tL, sqtlS[sqtlpt-0].t)
 		}
-	case 40:
-		//line src/github.com/kierdavis/argo/squirtleparser.y:224
+	case 43:
+		//line src/github.com/kierdavis/argo/squirtleparser.y:269
 		{
 			sqtlVAL.tL = []Term{sqtlS[sqtlpt-0].t}
 		}
-	case 41:
-		//line src/github.com/kierdavis/argo/squirtleparser.y:226
-		{
-			sqtlVAL.t = sqtlS[sqtlpt-0].t
-		}
-	case 42:
-		//line src/github.com/kierdavis/argo/squirtleparser.y:227
-		{
-			sqtlVAL.t = sqtlS[sqtlpt-0].t
-		}
-	case 43:
-		//line src/github.com/kierdavis/argo/squirtleparser.y:228
-		{
-			sqtlVAL.t = sqtlS[sqtlpt-0].t
-		}
 	case 44:
-		//line src/github.com/kierdavis/argo/squirtleparser.y:229
+		//line src/github.com/kierdavis/argo/squirtleparser.y:271
 		{
 			sqtlVAL.t = sqtlS[sqtlpt-0].t
 		}
 	case 45:
-		//line src/github.com/kierdavis/argo/squirtleparser.y:230
+		//line src/github.com/kierdavis/argo/squirtleparser.y:272
 		{
 			sqtlVAL.t = sqtlS[sqtlpt-0].t
 		}
 	case 46:
-		//line src/github.com/kierdavis/argo/squirtleparser.y:231
+		//line src/github.com/kierdavis/argo/squirtleparser.y:273
 		{
 			sqtlVAL.t = sqtlS[sqtlpt-0].t
 		}
 	case 47:
-		//line src/github.com/kierdavis/argo/squirtleparser.y:233
+		//line src/github.com/kierdavis/argo/squirtleparser.y:274
+		{
+			sqtlVAL.t = sqtlS[sqtlpt-0].t
+		}
+	case 48:
+		//line src/github.com/kierdavis/argo/squirtleparser.y:275
+		{
+			sqtlVAL.t = sqtlS[sqtlpt-0].t
+		}
+	case 49:
+		//line src/github.com/kierdavis/argo/squirtleparser.y:276
+		{
+			sqtlVAL.t = sqtlS[sqtlpt-0].t
+		}
+	case 50:
+		//line src/github.com/kierdavis/argo/squirtleparser.y:278
 		{
 			sqtlVAL.t = NewBlankNode(sqtlS[sqtlpt-0].s)
 		}
-	case 48:
-		//line src/github.com/kierdavis/argo/squirtleparser.y:235
+	case 51:
+		//line src/github.com/kierdavis/argo/squirtleparser.y:280
 		{
 			sqtlVAL.t = NewLiteral(sqtlS[sqtlpt-0].s)
 		}
-	case 49:
-		//line src/github.com/kierdavis/argo/squirtleparser.y:236
+	case 52:
+		//line src/github.com/kierdavis/argo/squirtleparser.y:281
 		{
 			sqtlVAL.t = NewLiteralWithLanguage(sqtlS[sqtlpt-2].s, sqtlS[sqtlpt-0].s)
 		}
-	case 50:
-		//line src/github.com/kierdavis/argo/squirtleparser.y:237
+	case 53:
+		//line src/github.com/kierdavis/argo/squirtleparser.y:282
 		{
 			sqtlVAL.t = NewLiteralWithDatatype(sqtlS[sqtlpt-2].s, sqtlS[sqtlpt-0].t)
 		}
-	case 51:
-		//line src/github.com/kierdavis/argo/squirtleparser.y:238
+	case 54:
+		//line src/github.com/kierdavis/argo/squirtleparser.y:283
 		{
 			sqtlVAL.t = NewLiteralWithDatatype(sqtlS[sqtlpt-0].s, XSD.Get("integer"))
 		}
-	case 52:
-		//line src/github.com/kierdavis/argo/squirtleparser.y:239
+	case 55:
+		//line src/github.com/kierdavis/argo/squirtleparser.y:284
 		{
 			sqtlVAL.t = NewLiteralWithDatatype(sqtlS[sqtlpt-0].s, XSD.Get("decimal"))
 		}
-	case 53:
-		//line src/github.com/kierdavis/argo/squirtleparser.y:240
+	case 56:
+		//line src/github.com/kierdavis/argo/squirtleparser.y:285
 		{
 			sqtlVAL.t = NewLiteralWithDatatype(sqtlS[sqtlpt-0].s, XSD.Get("double"))
 		}
-	case 54:
-		//line src/github.com/kierdavis/argo/squirtleparser.y:241
+	case 57:
+		//line src/github.com/kierdavis/argo/squirtleparser.y:286
 		{
 			sqtlVAL.t = NewLiteralWithDatatype("true", XSD.Get("boolean"))
 		}
-	case 55:
-		//line src/github.com/kierdavis/argo/squirtleparser.y:242
+	case 58:
+		//line src/github.com/kierdavis/argo/squirtleparser.y:287
 		{
 			sqtlVAL.t = NewLiteralWithDatatype("false", XSD.Get("boolean"))
 		}
-	case 56:
-		//line src/github.com/kierdavis/argo/squirtleparser.y:244
+	case 59:
+		//line src/github.com/kierdavis/argo/squirtleparser.y:289
 		{
 			sqtlVAL.t = &sqtlVar{sqtlS[sqtlpt-0].s}
 		}
-	case 57:
-		//line src/github.com/kierdavis/argo/squirtleparser.y:246
+	case 60:
+		//line src/github.com/kierdavis/argo/squirtleparser.y:291
 		{
 			sqtlVAL.t = NewResource(sqtlS[sqtlpt-0].s)
 		}
-	case 58:
-		//line src/github.com/kierdavis/argo/squirtleparser.y:248
-		{
-			sqtlVAL.s = sqtlS[sqtlpt-0].s
-		}
-	case 59:
-		//line src/github.com/kierdavis/argo/squirtleparser.y:249
-		{
-			sqtlVAL.s = sqtlS[sqtlpt-0].s
-		}
-	case 60:
-		//line src/github.com/kierdavis/argo/squirtleparser.y:250
-		{
-			sqtlVAL.s = sqtlS[sqtlpt-0].s
-		}
 	case 61:
-		//line src/github.com/kierdavis/argo/squirtleparser.y:251
+		//line src/github.com/kierdavis/argo/squirtleparser.y:293
+		{
+			sqtlVAL.s = sqtlS[sqtlpt-0].s
+		}
+	case 62:
+		//line src/github.com/kierdavis/argo/squirtleparser.y:294
+		{
+			sqtlVAL.s = sqtlS[sqtlpt-0].s
+		}
+	case 63:
+		//line src/github.com/kierdavis/argo/squirtleparser.y:295
+		{
+			sqtlVAL.s = sqtlS[sqtlpt-0].s
+		}
+	case 64:
+		//line src/github.com/kierdavis/argo/squirtleparser.y:296
 		{
 			sqtlVAL.s = getName(sqtlS[sqtlpt-0].s)
 		}
-	case 62:
-		//line src/github.com/kierdavis/argo/squirtleparser.y:253
+	case 65:
+		//line src/github.com/kierdavis/argo/squirtleparser.y:298
 		{
 			sqtlVAL.s = addHash(getName(sqtlS[sqtlpt-2].s)) + sqtlS[sqtlpt-0].s
 		}
-	case 63:
-		//line src/github.com/kierdavis/argo/squirtleparser.y:255
+	case 66:
+		//line src/github.com/kierdavis/argo/squirtleparser.y:300
 		{
 			sqtlVAL.s = stripSlash(getName(sqtlS[sqtlpt-1].s)) + sqtlS[sqtlpt-0].s
 		}
-	case 64:
-		//line src/github.com/kierdavis/argo/squirtleparser.y:257
+	case 67:
+		//line src/github.com/kierdavis/argo/squirtleparser.y:302
 		{
 			sqtlVAL.s = sqtlS[sqtlpt-1].s + sqtlS[sqtlpt-0].s
 		}
-	case 65:
-		//line src/github.com/kierdavis/argo/squirtleparser.y:258
-		{
-			sqtlVAL.s = sqtlS[sqtlpt-0].s
-		}
-	case 66:
-		//line src/github.com/kierdavis/argo/squirtleparser.y:260
-		{
-			sqtlVAL.s = "/" + sqtlS[sqtlpt-0].s
-		}
-	case 67:
-		//line src/github.com/kierdavis/argo/squirtleparser.y:262
-		{
-			sqtlVAL.s = sqtlS[sqtlpt-0].s
-		}
 	case 68:
-		//line src/github.com/kierdavis/argo/squirtleparser.y:263
+		//line src/github.com/kierdavis/argo/squirtleparser.y:303
 		{
 			sqtlVAL.s = sqtlS[sqtlpt-0].s
 		}
 	case 69:
-		//line src/github.com/kierdavis/argo/squirtleparser.y:264
+		//line src/github.com/kierdavis/argo/squirtleparser.y:305
 		{
-			sqtlVAL.s = sqtlS[sqtlpt-0].s
+			sqtlVAL.s = "/" + sqtlS[sqtlpt-0].s
 		}
 	case 70:
-		//line src/github.com/kierdavis/argo/squirtleparser.y:265
+		//line src/github.com/kierdavis/argo/squirtleparser.y:307
 		{
 			sqtlVAL.s = sqtlS[sqtlpt-0].s
 		}
 	case 71:
-		sqtlVAL.s = sqtlS[sqtlpt-0].s
+		//line src/github.com/kierdavis/argo/squirtleparser.y:308
+		{
+			sqtlVAL.s = sqtlS[sqtlpt-0].s
+		}
 	case 72:
-		//line src/github.com/kierdavis/argo/squirtleparser.y:267
+		//line src/github.com/kierdavis/argo/squirtleparser.y:309
 		{
 			sqtlVAL.s = sqtlS[sqtlpt-0].s
 		}
 	case 73:
-		sqtlVAL.s = sqtlS[sqtlpt-0].s
+		//line src/github.com/kierdavis/argo/squirtleparser.y:310
+		{
+			sqtlVAL.s = sqtlS[sqtlpt-0].s
+		}
 	case 74:
-		//line src/github.com/kierdavis/argo/squirtleparser.y:269
+		sqtlVAL.s = sqtlS[sqtlpt-0].s
+	case 75:
+		//line src/github.com/kierdavis/argo/squirtleparser.y:312
+		{
+			sqtlVAL.s = sqtlS[sqtlpt-0].s
+		}
+	case 76:
+		sqtlVAL.s = sqtlS[sqtlpt-0].s
+	case 77:
+		//line src/github.com/kierdavis/argo/squirtleparser.y:314
 		{
 			sqtlVAL.s = sqtlS[sqtlpt-0].s
 		}

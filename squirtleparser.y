@@ -25,6 +25,8 @@
         "bufio"
         "fmt"
         "io"
+        "net/http"
+        "os"
         "strings"
         "sync"
         "unicode"
@@ -76,11 +78,11 @@
     tL []Term
 }
 
-%token <s> A_KWD AS BNODE DECIMAL DOUBLE DT EOF FALSE IDENTIFIER INTEGER IRIREF IS NAME NEW STRING TEMPLATE TRUE VAR
+%token <s> A_KWD AS BNODE DECIMAL DOUBLE DT EOF FALSE IDENTIFIER INCLUDE INTEGER IRIREF IS NAME NEW STRING TEMPLATE TRUE VAR
 
 %type <s> postfix_identifier qname raw_iriref slash_separated_name slashed_extension slashed_extensions
 %type <sL> opt_template_argnames opt_template_argnames_outer template_argnames
-%type <t> apply_template apply_template_subject bnode description iriref literal nonempty_subject object predicate raw_subject subject var
+%type <t> apply_template bnode description iriref literal nonempty_subject object predicate raw_subject subject var
 %type <tL> object_list opt_template_args template_args
 
 %%
@@ -91,9 +93,47 @@ statements  : statements statement
             | statement
 
 statement   : name_decl
+            | include
             | description
             | template
             | apply_template
+
+include : INCLUDE STRING
+            {
+                f, err := os.Open($2)
+                if err != nil {
+                    sqtlErrChan <- err
+                    return 1
+                }
+                
+                n := sqtlParse(newLexer(f))
+                f.Close()
+                
+                if n != 0 {
+                    return n
+                }
+            }
+        
+        | INCLUDE raw_iriref
+            {
+                resp, err := http.Get($2)
+                if err != nil {
+                    sqtlErrChan <- err
+                    return 1
+                }
+                
+                if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+                    sqtlErrChan <- fmt.Errorf("HTTP request returned %s", resp.Status)
+                    return 1
+                }
+                
+                n := sqtlParse(newLexer(resp.Body))
+                resp.Body.Close()
+                
+                if n != 0 {
+                    return n
+                }
+            }
 
 name_decl   : NAME raw_iriref AS IDENTIFIER                 {sqtlNames[$4] = $2; sqtlPrefixMap[$2] = $4}
 
@@ -128,10 +168,10 @@ opt_template_args   : template_args                         {$$ = $1}
 template_args   : template_args ',' object                  {$$ = append($1, $3)}
                 | object                                    {$$ = []Term{$1}}
 
-apply_template_subject  : nonempty_subject IS               {$$ = $1}
-                        |                                   {$$ = NewAnonNode()}
+apply_template_delim    : IS
+                        | NEW
 
-apply_template  : apply_template_subject NEW IDENTIFIER '(' opt_template_args ')'
+apply_template  : subject apply_template_delim IDENTIFIER '(' opt_template_args ')'
     {
         $$ = $1
         templateName := $3
@@ -144,6 +184,11 @@ apply_template  : apply_template_subject NEW IDENTIFIER '(' opt_template_args ')
         }
         
         bindings := make(map[string]Term)
+        
+        if len(template.ArgNames) != len(args) {
+            sqtlErrChan <- fmt.Errorf("Wrong number of arguments for template %s: expected %d, got %d", templateName, len(template.ArgNames), len(args))
+            return 1
+        }
         
         for i, argName := range template.ArgNames {
             bindings[argName] = args[i]
@@ -365,6 +410,9 @@ func (ll *lexer) Lex(lval *sqtlSymType) (t int) {
         
         case "false":
             return FALSE
+        
+        case "include":
+            return INCLUDE
         
         case "inf":
             lval.s = "INF"
