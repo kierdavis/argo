@@ -192,12 +192,12 @@ func Serializers() (serializers map[string]*Format) {
 // could not be determined.
 func FormatFromMIMEType(mimeType string) (format *Format) {
 	for _, format = range Formats {
-		if format.PreferredMIMEType == mimeType {
+		if strings.Index(mimeType, format.PreferredMIMEType) > 0 {
 			return format
 		}
 
 		for _, m := range format.OtherMIMETypes {
-			if m == mimeType {
+			if strings.Index(mimeType, m) > 0 {
 				return format
 			}
 		}
