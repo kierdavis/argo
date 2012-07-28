@@ -28,6 +28,8 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"regexp"
+	"sort"
 	"sync"
 	"time"
 )
@@ -35,7 +37,7 @@ import (
 var LookupCacheFile = filepath.Join(os.Getenv("HOME"), ".prefixes.gob")
 
 var TriplesProcessed uint
-var BNodesRewritten uint
+var Rewritten uint
 
 var Parsers, Serializers []string
 
@@ -47,17 +49,23 @@ func init() {
 	for id := range argo.Serializers() {
 		Serializers = append(Serializers, id)
 	}
+
+	sort.Strings(Parsers)
+	sort.Strings(Serializers)
 }
 
 type Args struct {
-	OutFile             string
-	URLs                []string
-	Files               []string
-	OutputFormat        string
-	InputFormat         string
-	StdinFormat         string
-	ShowFormats         bool
-	RewriteBNodesPrefix string
+	OutFile           string
+	URLs              []string
+	Files             []string
+	OutputFormat      string
+	InputFormat       string
+	StdinFormat       string
+	ShowFormats       bool
+	Rewrites          []string
+	SubjectRewrites   []string
+	PredicateRewrites []string
+	ObjectRewrites    []string
 }
 
 func init() {
@@ -109,7 +117,7 @@ func read(output chan *argo.Triple, errorOutput chan error, prefixMap map[string
 			}
 			defer resp.Body.Close()
 
-			msg(ansi.Blue, "Parsing '%s'...\n", url)
+			msg(ansi.Blue, "Parsing '%s' as %s...\n", url, format.Name)
 			tripleChan := make(chan *argo.Triple)
 			errChan := make(chan error)
 
@@ -148,7 +156,7 @@ func read(output chan *argo.Triple, errorOutput chan error, prefixMap map[string
 					format = argo.Formats["rdfxml"]
 				}
 
-				msg(ansi.Blue, "Parsing standard input...\n")
+				msg(ansi.Blue, "Parsing standard input as %s...\n", format.Name)
 				tripleChan := make(chan *argo.Triple)
 				errChan := make(chan error)
 
@@ -195,7 +203,7 @@ func read(output chan *argo.Triple, errorOutput chan error, prefixMap map[string
 					}
 					defer f.Close()
 
-					msg(ansi.Blue, "Parsing '%s'...\n", match)
+					msg(ansi.Blue, "Parsing '%s' as %s...\n", match, format.Name)
 					tripleChan := make(chan *argo.Triple)
 					errChan := make(chan error)
 
@@ -224,10 +232,50 @@ func read(output chan *argo.Triple, errorOutput chan error, prefixMap map[string
 	close(errorOutput)
 }
 
-func rewriteBNode(termRef *argo.Term, prefix string) {
-	if bnode, ok := (*termRef).(*argo.BlankNode); ok {
-		*termRef = argo.NewResource(prefix + bnode.ID)
-		BNodesRewritten++
+type Rewrite struct {
+	Regexp   *regexp.Regexp
+	Template string
+}
+
+func (rewrite Rewrite) Apply(termPtr *argo.Term) {
+	term := *termPtr
+	termStr := ""
+
+	switch realTerm := term.(type) {
+	case *argo.Resource:
+		termStr = realTerm.URI
+	case *argo.BlankNode:
+		termStr = "_:" + realTerm.ID
+	case *argo.Literal:
+		return
+	}
+
+	match := rewrite.Regexp.FindStringSubmatchIndex(termStr)
+	if match != nil {
+		resBytes := rewrite.Regexp.ExpandString(nil, rewrite.Template, termStr, match)
+		resStr := string(resBytes)
+
+		if len(resStr) >= 2 && resStr[0] == '_' && resStr[1] == ':' {
+			*termPtr = argo.NewBlankNode(resStr[2:])
+		} else {
+			*termPtr = argo.NewResource(resStr)
+		}
+
+		Rewritten++
+	}
+}
+
+func rewrite(termPtr *argo.Term, rewrites1, rewrites2 []Rewrite) {
+	if rewrites1 != nil {
+		for _, rewrite := range rewrites1 {
+			rewrite.Apply(termPtr)
+		}
+	}
+
+	if rewrites2 != nil {
+		for _, rewrite := range rewrites2 {
+			rewrite.Apply(termPtr)
+		}
 	}
 }
 
@@ -248,7 +296,10 @@ func main() {
 	p.Option('i', "stdin-format", "StdinFormat", 1, argparse.Choice(argparse.Store, Parsers...), "FORMAT", "The format to parse stdin as. The formats for all other sources (files and URLs) are still determined by their file extensions. Default: rdfxml.")
 	p.Option('O', "output-format", "OutputFormat", 1, argparse.Choice(argparse.Store, Serializers...), "FORMAT", "The format to write output to. Default: determine by the file extension, or fall back to rdfxml if unavailable.")
 	p.Option('F', "formats", "ShowFormats", 0, argparse.StoreConst(true), "", "Display a list of formats.")
-	p.Option('r', "rewrite-bnodes", "RewriteBNodesPrefix", 1, argparse.Store, "URIPREFIX", "Replace all blank nodes with a URI reference consisting of the given prefix and the blank node's identifier. Example (--rewrite-bnodes http://example.org/bnodes/) _:foobar -> http://example.org/bnodes/foobar. Default: no rewriting.")
+	p.Option('r', "rewrite", "Rewrites", 2, argparse.Append, "FIND REPLACE", "Replaces all URIs and blank nodes that match the standard regular expression FIND with the URI REPLACE. Within REPLACE, patterns such as $1, $2 etc. expanding to the text of the first and second submatch respectively. This option can be used multiple times. Input and output strings that have the prefix '_:' are interpreted as blank nodes; otherwise they are URIs.")
+	p.Option(0, "rewrite-subject", "SubjectRewrites", 2, argparse.Append, "FIND REPLACE", "Like -r/--rewrite, but only applies to subject terms.")
+	p.Option(0, "rewrite-predicate", "PredicateRewrites", 2, argparse.Append, "FIND REPLACE", "Like -r/--rewrite, but only applies to predicate terms.")
+	p.Option(0, "rewrite-object", "ObjectRewrites", 2, argparse.Append, "FIND REPLACE", "Like -r/--rewrite, but only applies to object terms.")
 	p.Argument("Files", argparse.ZeroOrMore, argparse.Store, "filename", "Files to parse and add to the graph.")
 	err := p.Parse(args)
 
@@ -260,20 +311,58 @@ func main() {
 	if args.ShowFormats {
 		fmt.Printf("Input formats:\n")
 
-		for id, format := range argo.Parsers() {
-			fmt.Printf("  %s - %s\n", id, format.Name)
+		for _, id := range Parsers {
+			fmt.Printf("  %s - %s\n", id, argo.Formats[id].Name)
 		}
 
 		fmt.Printf("\nOutput formats:\n")
 
-		for id, format := range argo.Serializers() {
-			fmt.Printf("  %s - %s\n", id, format.Name)
+		for _, id := range Serializers {
+			fmt.Printf("  %s - %s\n", id, argo.Formats[id].Name)
 		}
 
 		return
 	}
 
 	// =============================================================================================
+
+	var rewrites, subjectRewrites, predicateRewrites, objectRewrites []Rewrite
+
+	if args.Rewrites != nil {
+		rewrites = make([]Rewrite, len(args.Rewrites)/2)
+
+		for i := 0; i < len(args.Rewrites); i += 2 {
+			rewrites[i/2].Regexp = regexp.MustCompile(args.Rewrites[i])
+			rewrites[i/2].Template = args.Rewrites[i+1]
+		}
+	}
+
+	if args.SubjectRewrites != nil {
+		subjectRewrites = make([]Rewrite, len(args.SubjectRewrites)/2)
+
+		for i := 0; i < len(args.SubjectRewrites); i += 2 {
+			subjectRewrites[i/2].Regexp = regexp.MustCompile(args.SubjectRewrites[i])
+			subjectRewrites[i/2].Template = args.SubjectRewrites[i+1]
+		}
+	}
+
+	if args.PredicateRewrites != nil {
+		predicateRewrites = make([]Rewrite, len(args.PredicateRewrites)/2)
+
+		for i := 0; i < len(args.PredicateRewrites); i += 2 {
+			predicateRewrites[i/2].Regexp = regexp.MustCompile(args.PredicateRewrites[i])
+			predicateRewrites[i/2].Template = args.PredicateRewrites[i+1]
+		}
+	}
+
+	if args.ObjectRewrites != nil {
+		objectRewrites = make([]Rewrite, len(args.ObjectRewrites)/2)
+
+		for i := 0; i < len(args.ObjectRewrites); i += 2 {
+			objectRewrites[i/2].Regexp = regexp.MustCompile(args.ObjectRewrites[i])
+			objectRewrites[i/2].Template = args.ObjectRewrites[i+1]
+		}
+	}
 
 	tripleChan := make(chan *argo.Triple)
 	errChan := make(chan error)
@@ -283,20 +372,13 @@ func main() {
 	//go graph.LoadFromChannel(tripleChan)
 
 	go func() {
-		if args.RewriteBNodesPrefix == "" {
-			for triple := range tripleChan {
-				graph.Add(triple)
-				TriplesProcessed++
-			}
+		for triple := range tripleChan {
+			rewrite(&triple.Subject, rewrites, subjectRewrites)
+			rewrite(&triple.Predicate, rewrites, predicateRewrites)
+			rewrite(&triple.Object, rewrites, objectRewrites)
 
-		} else {
-			for triple := range tripleChan {
-				rewriteBNode(&triple.Subject, args.RewriteBNodesPrefix)
-				rewriteBNode(&triple.Object, args.RewriteBNodesPrefix)
-
-				graph.Add(triple)
-				TriplesProcessed++
-			}
+			graph.Add(triple)
+			TriplesProcessed++
 		}
 	}()
 
@@ -333,7 +415,7 @@ func main() {
 		format = argo.Formats[args.OutputFormat]
 	}
 
-	msg(ansi.Blue, "Serializing...\n")
+	msg(ansi.Blue, "Serializing as %s...\n", format.Name)
 	err = graph.Serialize(format.Serializer, output)
 
 	if err != nil {
@@ -345,8 +427,5 @@ func main() {
 
 	ms := float64(time.Since(startTime).Nanoseconds()) / 1000000.0
 	msg(ansi.Blue, "\n%d triples processed in %.3f seconds (%.3f ms)\n", TriplesProcessed, ms/1000.0, ms)
-
-	if args.RewriteBNodesPrefix != "" {
-		msg(ansi.Blue, "%d blank nodes rewritten\n", BNodesRewritten)
-	}
+	msg(ansi.Blue, "%d terms rewritten\n", Rewritten)
 }

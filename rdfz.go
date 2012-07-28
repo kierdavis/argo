@@ -16,7 +16,7 @@ const (
 	RDFZ_PREFIX_START
 )
 
-func writeNum(w io.Writer, n int) (err error) {
+func rdfzWriteNum(w io.Writer, n uint) (err error) {
 	bytes := []byte{}
 
 	for n >= 0x80 {
@@ -29,19 +29,87 @@ func writeNum(w io.Writer, n int) (err error) {
 	return binary.Write(w, binary.BigEndian, bytes)
 }
 
-func encodePacket(w io.Writer, id int, values ...string) (err error) {
-	err = writeNum(w, id)
+func rdfzReadNum(r io.Reader) (n uint, err error) {
+	var b byte
+
+	sh := uint(0)
+
+	for {
+		err = binary.Read(r, binary.BigEndian, &b)
+		if err != nil {
+			return 0, err
+		}
+
+		n |= (uint(b&0x7F) << sh)
+		sh += 7
+
+		if b&0x80 == 0 {
+			return n, nil
+		}
+	}
+
+	return 0, nil
+}
+
+func rdfzWriteString(w io.Writer, s string) (err error) {
+	err = rdfzWriteNum(w, uint(len(s)))
+	if err != nil {
+		return err
+	}
+
+	_, err = w.Write([]byte(s))
+	return err
+}
+
+func rdfzReadString(r io.Reader) (s string, err error) {
+	l, err := rdfzReadNum(r)
+	if err != nil {
+		return "", err
+	}
+
+	buffer := make([]byte, l)
+	n, err := r.Read(buffer)
+	if err != nil {
+		return "", err
+	}
+
+	s = string(buffer[:n])
+
+	for uint(n) < l {
+		m, err := r.Read(buffer[:l-uint(n)])
+		if err != nil {
+			return "", err
+		}
+
+		s += string(buffer[:m])
+		n += m
+	}
+
+	return s, nil
+}
+
+func rdfzRead2Strings(r io.Reader) (s1 string, s2 string, err error) {
+	s1, err = rdfzReadString(r)
+	if err != nil {
+		return "", "", err
+	}
+
+	s2, err = rdfzReadString(r)
+	if err != nil {
+		return "", "", err
+	}
+
+	return s1, s2, nil
+}
+
+func rdfzEncodePacket(w io.Writer, id uint, values ...string) (err error) {
+	err = rdfzWriteNum(w, id)
 	if err != nil {
 		return err
 	}
 
 	for _, value := range values {
-		err = writeNum(w, len(value))
-		if err != nil {
-			return err
-		}
-
-		_, err = w.Write([]byte(value))
+		err = rdfzWriteString(w, value)
 		if err != nil {
 			return err
 		}
@@ -50,7 +118,7 @@ func encodePacket(w io.Writer, id int, values ...string) (err error) {
 	return err
 }
 
-func encodeURI(w io.Writer, term *Resource, prefixesPtr *[]string) (err error) {
+func rdfzEncodeURI(w io.Writer, term *Resource, prefixesPtr *[]string) (err error) {
 	prefixes := *prefixesPtr
 	base, name := SplitPrefix(term.URI)
 
@@ -66,34 +134,135 @@ func encodeURI(w io.Writer, term *Resource, prefixesPtr *[]string) (err error) {
 		prefixID = len(prefixes)
 		*prefixesPtr = append(prefixes, base)
 
-		err = encodePacket(w, RDFZ_NEW_PREFIX, base)
+		err = rdfzEncodePacket(w, RDFZ_NEW_PREFIX, base)
 		if err != nil {
 			return err
 		}
 	}
 
-	return encodePacket(w, RDFZ_PREFIX_START+prefixID, name)
+	return rdfzEncodePacket(w, RDFZ_PREFIX_START+uint(prefixID), name)
 }
 
-func encodeBNode(w io.Writer, term *BlankNode) (err error) {
-	return encodePacket(w, RDFZ_BNODE, term.ID)
+func rdfzEncodeBNode(w io.Writer, term *BlankNode) (err error) {
+	return rdfzEncodePacket(w, RDFZ_BNODE, term.ID)
 }
 
-func encodeLiteral(w io.Writer, term *Literal, prefixesPtr *[]string) (err error) {
+func rdfzEncodeLiteral(w io.Writer, term *Literal, prefixesPtr *[]string) (err error) {
 	if term.Language != "" {
-		return encodePacket(w, RDFZ_LITLANG, term.Value, term.Language)
+		return rdfzEncodePacket(w, RDFZ_LITLANG, term.Value, term.Language)
 
 	} else if term.Datatype != nil {
-		err = encodePacket(w, RDFZ_LITDT, term.Value)
+		err = rdfzEncodePacket(w, RDFZ_LITDT, term.Value)
 		if err != nil {
 			return err
 		}
 
-		return encodeURI(w, term.Datatype.(*Resource), prefixesPtr)
+		return rdfzEncodeURI(w, term.Datatype.(*Resource), prefixesPtr)
 
 	}
 
-	return encodePacket(w, RDFZ_LIT, term.Value)
+	return rdfzEncodePacket(w, RDFZ_LIT, term.Value)
+}
+
+func ParseRDFZ(r io.Reader, tripleChan chan *Triple, errChan chan error, _ map[string]string) {
+	defer close(tripleChan)
+	defer close(errChan)
+
+	z, err := zlib.NewReader(r)
+	if err != nil {
+		errChan <- err
+		return
+	}
+
+	defer z.Close()
+
+	prefixes := make([]string, 0)
+	terms := make([]Term, 0, 3)
+
+	var dtlit string
+
+	for {
+		packetID, err := rdfzReadNum(z)
+		if err != nil {
+			errChan <- err
+			return
+		}
+
+		switch packetID {
+		case RDFZ_EOF:
+			return
+
+		case RDFZ_BNODE:
+			id, err := rdfzReadString(z)
+			if err != nil {
+				errChan <- err
+				return
+			}
+
+			terms = append(terms, NewBlankNode(id))
+
+		case RDFZ_LIT:
+			value, err := rdfzReadString(z)
+			if err != nil {
+				errChan <- err
+				return
+			}
+
+			terms = append(terms, NewLiteral(value))
+
+		case RDFZ_LITLANG:
+			value, lang, err := rdfzRead2Strings(z)
+			if err != nil {
+				errChan <- err
+				return
+			}
+
+			terms = append(terms, NewLiteralWithLanguage(value, lang))
+
+		case RDFZ_LITDT:
+			dtlit, err = rdfzReadString(z)
+			if err != nil {
+				errChan <- err
+				return
+			}
+
+		case RDFZ_NEW_PREFIX:
+			base, err := rdfzReadString(z)
+			if err != nil {
+				errChan <- err
+				return
+			}
+
+			prefixes = append(prefixes, base)
+
+		default:
+			prefixID := packetID - RDFZ_PREFIX_START
+
+			if prefixID >= uint(len(prefixes)) {
+				continue
+			}
+
+			name, err := rdfzReadString(z)
+			if err != nil {
+				errChan <- err
+				return
+			}
+
+			term := NewResource(prefixes[prefixID] + name)
+
+			if dtlit == "" {
+				terms = append(terms, term)
+			} else {
+				terms = append(terms, NewLiteralWithDatatype(dtlit, term))
+				dtlit = ""
+			}
+		}
+
+		if len(terms) == 3 {
+			tripleChan <- NewTriple(terms[0], terms[1], terms[2])
+			terms = terms[:0]
+		}
+	}
 }
 
 func SerializeRDFZ(w io.Writer, tripleChan chan *Triple, errChan chan error, _ map[string]string) {
@@ -108,9 +277,9 @@ func SerializeRDFZ(w io.Writer, tripleChan chan *Triple, errChan chan error, _ m
 	for triple := range tripleChan {
 		switch subj := triple.Subject.(type) {
 		case *Resource:
-			err = encodeURI(z, subj, &prefixes)
+			err = rdfzEncodeURI(z, subj, &prefixes)
 		case *BlankNode:
-			err = encodeBNode(z, subj)
+			err = rdfzEncodeBNode(z, subj)
 		}
 
 		if err != nil {
@@ -118,7 +287,7 @@ func SerializeRDFZ(w io.Writer, tripleChan chan *Triple, errChan chan error, _ m
 			return
 		}
 
-		err = encodeURI(z, triple.Predicate.(*Resource), &prefixes)
+		err = rdfzEncodeURI(z, triple.Predicate.(*Resource), &prefixes)
 		if err != nil {
 			errChan <- err
 			return
@@ -126,11 +295,11 @@ func SerializeRDFZ(w io.Writer, tripleChan chan *Triple, errChan chan error, _ m
 
 		switch obj := triple.Object.(type) {
 		case *Resource:
-			err = encodeURI(z, obj, &prefixes)
+			err = rdfzEncodeURI(z, obj, &prefixes)
 		case *BlankNode:
-			err = encodeBNode(z, obj)
+			err = rdfzEncodeBNode(z, obj)
 		case *Literal:
-			err = encodeLiteral(z, obj, &prefixes)
+			err = rdfzEncodeLiteral(z, obj, &prefixes)
 		}
 
 		if err != nil {
@@ -139,7 +308,7 @@ func SerializeRDFZ(w io.Writer, tripleChan chan *Triple, errChan chan error, _ m
 		}
 	}
 
-	err = encodePacket(z, RDFZ_EOF)
+	err = rdfzEncodePacket(z, RDFZ_EOF)
 	if err != nil {
 		errChan <- err
 	}

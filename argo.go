@@ -104,7 +104,7 @@ var Formats = map[string]*Format{
 	// http://www.w3.org/2001/sw/RDFCore/ntriples/
 	"ntriples": &Format{
 		ID:                 "ntriples",
-		Name:               "N-triples",
+		Name:               "N-Triples",
 		PreferredMIMEType:  "text/plain",
 		PreferredExtension: ".nt",
 		OtherMIMETypes:     []string{"text/ntriples", "text/x-ntriples"},
@@ -145,7 +145,7 @@ var Formats = map[string]*Format{
 		PreferredExtension: ".rdfz",
 		OtherMIMETypes:     []string{},
 		OtherExtensions:    []string{},
-		Parser:             nil,
+		Parser:             ParseRDFZ,
 		Serializer:         SerializeRDFZ,
 	},
 
@@ -180,7 +180,7 @@ func Serializers() (serializers map[string]*Format) {
 	serializers = make(map[string]*Format, 0)
 
 	for id, format := range Formats {
-		if format.Parser != nil {
+		if format.Serializer != nil {
 			serializers[id] = format
 		}
 	}

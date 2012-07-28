@@ -22,6 +22,7 @@ package argo
 import (
 	"fmt"
 	"math/rand"
+	"strings"
 )
 
 // A Term is the value of a subject, predicate or object i.e. a IRI reference, blank node or
@@ -90,7 +91,14 @@ func NewLiteralWithLanguageAndDatatype(value string, language string, datatype T
 
 // Method String returns the NTriples representation of this literal.
 func (term Literal) String() (str string) {
-	str = fmt.Sprintf("\"%s\"", term.Value)
+	str = term.Value
+	str = strings.Replace(str, "\\", "\\\\", -1)
+	str = strings.Replace(str, "\"", "\\\"", -1)
+	str = strings.Replace(str, "\n", "\\n", -1)
+	str = strings.Replace(str, "\r", "\\r", -1)
+	str = strings.Replace(str, "\t", "\\t", -1)
+
+	str = fmt.Sprintf("\"%s\"", str)
 
 	if term.Language != "" {
 		str += "@" + term.Language
