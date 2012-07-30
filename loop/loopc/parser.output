@@ -1,0 +1,752 @@
+
+state 0
+	$accept: .start $end 
+	toplevels: .    (2)
+
+	.  reduce 2 (src line 75)
+
+	start  goto 1
+	toplevels  goto 2
+
+state 1
+	$accept:  start.$end 
+
+	$end  accept
+	.  error
+
+
+state 2
+	start:  toplevels.    (1)
+	toplevels:  toplevels.toplevel 
+
+	FUNC  shift 7
+	NAME  shift 6
+	.  reduce 1 (src line 68)
+
+	toplevel  goto 3
+	namedef  goto 4
+	funcdef  goto 5
+
+state 3
+	toplevels:  toplevels toplevel.    (3)
+
+	.  reduce 3 (src line 76)
+
+
+state 4
+	toplevel:  namedef.    (4)
+
+	.  reduce 4 (src line 79)
+
+
+state 5
+	toplevel:  funcdef.    (5)
+
+	.  reduce 5 (src line 80)
+
+
+state 6
+	namedef:  NAME.resource_or_name AS IDENTIFIER 
+
+	IDENTIFIER  shift 10
+	URIREF  shift 11
+	.  error
+
+	qname  goto 12
+	resource  goto 9
+	resource_or_name  goto 8
+	slashed_reference  goto 13
+
+state 7
+	funcdef:  FUNC.func_uri opt_args_outer func_body 
+
+	IDENTIFIER  shift 10
+	URIREF  shift 11
+	.  error
+
+	func_uri  goto 14
+	qname  goto 12
+	resource  goto 9
+	resource_or_name  goto 15
+	slashed_reference  goto 13
+
+state 8
+	namedef:  NAME resource_or_name.AS IDENTIFIER 
+
+	AS  shift 16
+	.  error
+
+
+state 9
+	resource_or_name:  resource.    (56)
+
+	.  reduce 56 (src line 466)
+
+
+state 10
+	resource_or_name:  IDENTIFIER.    (57)
+	qname:  IDENTIFIER.: IDENTIFIER 
+	slashed_reference:  IDENTIFIER.slashed_extensions 
+
+	:  shift 17
+	/  shift 20
+	.  reduce 57 (src line 471)
+
+	slashed_extension  goto 19
+	slashed_extensions  goto 18
+
+state 11
+	resource:  URIREF.    (58)
+
+	.  reduce 58 (src line 478)
+
+
+state 12
+	resource:  qname.    (59)
+
+	.  reduce 59 (src line 483)
+
+
+state 13
+	resource:  slashed_reference.    (60)
+
+	.  reduce 60 (src line 488)
+
+
+state 14
+	funcdef:  FUNC func_uri.opt_args_outer func_body 
+	opt_args_outer: .    (35)
+
+	(  shift 22
+	.  reduce 35 (src line 326)
+
+	opt_args_outer  goto 21
+
+state 15
+	func_uri:  resource_or_name.    (8)
+
+	.  reduce 8 (src line 97)
+
+
+state 16
+	namedef:  NAME resource_or_name AS.IDENTIFIER 
+
+	IDENTIFIER  shift 23
+	.  error
+
+
+state 17
+	qname:  IDENTIFIER :.IDENTIFIER 
+
+	IDENTIFIER  shift 24
+	.  error
+
+
+state 18
+	slashed_reference:  IDENTIFIER slashed_extensions.    (62)
+	slashed_extensions:  slashed_extensions.slashed_extension 
+
+	/  shift 20
+	.  reduce 62 (src line 513)
+
+	slashed_extension  goto 25
+
+state 19
+	slashed_extensions:  slashed_extension.    (64)
+
+	.  reduce 64 (src line 531)
+
+
+state 20
+	slashed_extension:  /.IDENTIFIER 
+
+	IDENTIFIER  shift 26
+	.  error
+
+
+state 21
+	funcdef:  FUNC func_uri opt_args_outer.func_body 
+
+	IDENTIFIER  shift 10
+	URIREF  shift 11
+	{  shift 28
+	.  error
+
+	qname  goto 12
+	resource  goto 9
+	resource_or_name  goto 32
+	slashed_reference  goto 13
+	stmt  goto 29
+	func_body  goto 27
+	funccall  goto 33
+	nonatomic_expr  goto 31
+	predicate_object  goto 30
+
+state 22
+	opt_args_outer:  (.opt_args_inner ) 
+	opt_args_inner: .    (37)
+
+	IDENTIFIER  shift 38
+	URIREF  shift 11
+	.  reduce 37 (src line 338)
+
+	qname  goto 12
+	resource  goto 39
+	resource_or_argument  goto 37
+	slashed_reference  goto 13
+	arg  goto 36
+	args  goto 35
+	opt_args_inner  goto 34
+
+state 23
+	namedef:  NAME resource_or_name AS IDENTIFIER.    (6)
+
+	.  reduce 6 (src line 83)
+
+
+state 24
+	qname:  IDENTIFIER : IDENTIFIER.    (61)
+
+	.  reduce 61 (src line 495)
+
+
+state 25
+	slashed_extensions:  slashed_extensions slashed_extension.    (63)
+
+	.  reduce 63 (src line 526)
+
+
+state 26
+	slashed_extension:  / IDENTIFIER.    (65)
+
+	.  reduce 65 (src line 538)
+
+
+state 27
+	funcdef:  FUNC func_uri opt_args_outer func_body.    (7)
+
+	.  reduce 7 (src line 90)
+
+
+state 28
+	func_body:  {.stmts } 
+
+	IDENTIFIER  shift 10
+	URIREF  shift 11
+	.  error
+
+	qname  goto 12
+	resource  goto 9
+	resource_or_name  goto 32
+	slashed_reference  goto 13
+	stmt  goto 41
+	stmts  goto 40
+	funccall  goto 33
+	nonatomic_expr  goto 31
+	predicate_object  goto 30
+
+state 29
+	func_body:  stmt.    (10)
+
+	.  reduce 10 (src line 116)
+
+
+state 30
+	stmt:  predicate_object.    (13)
+
+	.  reduce 13 (src line 135)
+
+
+state 31
+	stmt:  nonatomic_expr.    (14)
+
+	.  reduce 14 (src line 140)
+
+
+state 32
+	predicate_object:  resource_or_name.object 
+	predicate_object:  resource_or_name.OF IDENTIFIER object 
+	funccall:  resource_or_name.( namedexprlist ) 
+	funccall:  resource_or_name.( ) 
+
+	IDENTIFIER  shift 10
+	QUOTEDSTRING  shift 47
+	URIREF  shift 11
+	OF  shift 43
+	(  shift 44
+	.  error
+
+	qname  goto 12
+	resource  goto 9
+	resource_or_name  goto 45
+	slashed_reference  goto 13
+	object  goto 42
+	literal  goto 46
+
+state 33
+	nonatomic_expr:  funccall.    (24)
+
+	.  reduce 24 (src line 200)
+
+
+state 34
+	opt_args_outer:  ( opt_args_inner.) 
+
+	)  shift 48
+	.  error
+
+
+state 35
+	opt_args_inner:  args.    (38)
+	args:  args., arg 
+
+	,  shift 49
+	.  reduce 38 (src line 343)
+
+
+state 36
+	args:  arg.    (40)
+
+	.  reduce 40 (src line 355)
+
+
+state 37
+	arg:  resource_or_argument.opt_type opt_label 
+	opt_type: .    (46)
+
+	BOOLEAN  shift 53
+	FLOAT  shift 54
+	INTEGER  shift 55
+	RESOURCE  shift 56
+	STRING  shift 57
+	.  reduce 46 (src line 408)
+
+	atomic_type  goto 52
+	opt_type  goto 50
+	type  goto 51
+
+state 38
+	resource_or_argument:  IDENTIFIER.    (42)
+	qname:  IDENTIFIER.: IDENTIFIER 
+	slashed_reference:  IDENTIFIER.slashed_extensions 
+
+	:  shift 17
+	/  shift 20
+	.  reduce 42 (src line 369)
+
+	slashed_extension  goto 19
+	slashed_extensions  goto 18
+
+state 39
+	resource_or_argument:  resource.    (43)
+
+	.  reduce 43 (src line 382)
+
+
+state 40
+	func_body:  { stmts.} 
+	stmts:  stmts.stmt 
+
+	IDENTIFIER  shift 10
+	URIREF  shift 11
+	}  shift 58
+	.  error
+
+	qname  goto 12
+	resource  goto 9
+	resource_or_name  goto 32
+	slashed_reference  goto 13
+	stmt  goto 59
+	funccall  goto 33
+	nonatomic_expr  goto 31
+	predicate_object  goto 30
+
+state 41
+	stmts:  stmt.    (12)
+
+	.  reduce 12 (src line 128)
+
+
+state 42
+	predicate_object:  resource_or_name object.    (15)
+
+	.  reduce 15 (src line 147)
+
+
+state 43
+	predicate_object:  resource_or_name OF.IDENTIFIER object 
+
+	IDENTIFIER  shift 60
+	.  error
+
+
+state 44
+	funccall:  resource_or_name (.namedexprlist ) 
+	funccall:  resource_or_name (.) 
+
+	IDENTIFIER  shift 10
+	URIREF  shift 11
+	)  shift 62
+	.  error
+
+	qname  goto 12
+	resource  goto 9
+	resource_or_name  goto 63
+	slashed_reference  goto 13
+	namedexprlist  goto 61
+
+state 45
+	object:  resource_or_name.    (17)
+
+	.  reduce 17 (src line 159)
+
+
+state 46
+	object:  literal.    (18)
+
+	.  reduce 18 (src line 164)
+
+
+state 47
+	literal:  QUOTEDSTRING.    (19)
+	literal:  QUOTEDSTRING.@ IDENTIFIER 
+	literal:  QUOTEDSTRING.DTSYMBOL resource_or_name 
+
+	DTSYMBOL  shift 65
+	@  shift 64
+	.  reduce 19 (src line 171)
+
+
+state 48
+	opt_args_outer:  ( opt_args_inner ).    (36)
+
+	.  reduce 36 (src line 331)
+
+
+state 49
+	args:  args ,.arg 
+
+	IDENTIFIER  shift 38
+	URIREF  shift 11
+	.  error
+
+	qname  goto 12
+	resource  goto 39
+	resource_or_argument  goto 37
+	slashed_reference  goto 13
+	arg  goto 66
+
+state 50
+	arg:  resource_or_argument opt_type.opt_label 
+	opt_label: .    (54)
+
+	QUOTEDSTRING  shift 68
+	.  reduce 54 (src line 454)
+
+	opt_label  goto 67
+
+state 51
+	opt_type:  type.    (47)
+
+	.  reduce 47 (src line 413)
+
+
+state 52
+	type:  atomic_type.    (48)
+
+	.  reduce 48 (src line 420)
+
+
+state 53
+	atomic_type:  BOOLEAN.    (49)
+
+	.  reduce 49 (src line 427)
+
+
+state 54
+	atomic_type:  FLOAT.    (50)
+
+	.  reduce 50 (src line 432)
+
+
+state 55
+	atomic_type:  INTEGER.    (51)
+
+	.  reduce 51 (src line 437)
+
+
+state 56
+	atomic_type:  RESOURCE.    (52)
+
+	.  reduce 52 (src line 442)
+
+
+state 57
+	atomic_type:  STRING.    (53)
+
+	.  reduce 53 (src line 447)
+
+
+state 58
+	func_body:  { stmts }.    (9)
+
+	.  reduce 9 (src line 111)
+
+
+state 59
+	stmts:  stmts stmt.    (11)
+
+	.  reduce 11 (src line 123)
+
+
+state 60
+	predicate_object:  resource_or_name OF IDENTIFIER.object 
+
+	IDENTIFIER  shift 10
+	QUOTEDSTRING  shift 47
+	URIREF  shift 11
+	.  error
+
+	qname  goto 12
+	resource  goto 9
+	resource_or_name  goto 45
+	slashed_reference  goto 13
+	object  goto 69
+	literal  goto 46
+
+state 61
+	funccall:  resource_or_name ( namedexprlist.) 
+	namedexprlist:  namedexprlist., resource_or_name expr 
+
+	)  shift 70
+	,  shift 71
+	.  error
+
+
+state 62
+	funccall:  resource_or_name ( ).    (32)
+
+	.  reduce 32 (src line 306)
+
+
+state 63
+	namedexprlist:  resource_or_name.expr 
+
+	INTCONST  shift 76
+	FLOATCONST  shift 77
+	IDENTIFIER  shift 82
+	QUOTEDSTRING  shift 47
+	URIREF  shift 11
+	FALSE  shift 79
+	TRUE  shift 78
+	.  error
+
+	qname  goto 12
+	resource  goto 83
+	resource_or_name  goto 81
+	resource_or_variable  goto 75
+	slashed_reference  goto 13
+	atomic_expr  goto 74
+	expr  goto 72
+	funccall  goto 33
+	nonatomic_expr  goto 73
+	literal  goto 80
+
+state 64
+	literal:  QUOTEDSTRING @.IDENTIFIER 
+
+	IDENTIFIER  shift 84
+	.  error
+
+
+state 65
+	literal:  QUOTEDSTRING DTSYMBOL.resource_or_name 
+
+	IDENTIFIER  shift 10
+	URIREF  shift 11
+	.  error
+
+	qname  goto 12
+	resource  goto 9
+	resource_or_name  goto 85
+	slashed_reference  goto 13
+
+state 66
+	args:  args , arg.    (39)
+
+	.  reduce 39 (src line 350)
+
+
+state 67
+	arg:  resource_or_argument opt_type opt_label.    (41)
+
+	.  reduce 41 (src line 362)
+
+
+state 68
+	opt_label:  QUOTEDSTRING.    (55)
+
+	.  reduce 55 (src line 459)
+
+
+state 69
+	predicate_object:  resource_or_name OF IDENTIFIER object.    (16)
+
+	.  reduce 16 (src line 152)
+
+
+state 70
+	funccall:  resource_or_name ( namedexprlist ).    (31)
+
+	.  reduce 31 (src line 301)
+
+
+state 71
+	namedexprlist:  namedexprlist ,.resource_or_name expr 
+
+	IDENTIFIER  shift 10
+	URIREF  shift 11
+	.  error
+
+	qname  goto 12
+	resource  goto 9
+	resource_or_name  goto 86
+	slashed_reference  goto 13
+
+state 72
+	namedexprlist:  resource_or_name expr.    (34)
+
+	.  reduce 34 (src line 319)
+
+
+state 73
+	expr:  nonatomic_expr.    (22)
+
+	.  reduce 22 (src line 188)
+
+
+state 74
+	expr:  atomic_expr.    (23)
+
+	.  reduce 23 (src line 193)
+
+
+state 75
+	atomic_expr:  resource_or_variable.    (25)
+
+	.  reduce 25 (src line 207)
+
+
+state 76
+	atomic_expr:  INTCONST.    (26)
+
+	.  reduce 26 (src line 212)
+
+
+state 77
+	atomic_expr:  FLOATCONST.    (27)
+
+	.  reduce 27 (src line 217)
+
+
+state 78
+	atomic_expr:  TRUE.    (28)
+
+	.  reduce 28 (src line 222)
+
+
+state 79
+	atomic_expr:  FALSE.    (29)
+
+	.  reduce 29 (src line 227)
+
+
+state 80
+	atomic_expr:  literal.    (30)
+
+	.  reduce 30 (src line 232)
+
+
+state 81
+	funccall:  resource_or_name.( namedexprlist ) 
+	funccall:  resource_or_name.( ) 
+
+	(  shift 44
+	.  error
+
+
+state 82
+	resource_or_variable:  IDENTIFIER.    (44)
+	resource_or_name:  IDENTIFIER.    (57)
+	qname:  IDENTIFIER.: IDENTIFIER 
+	slashed_reference:  IDENTIFIER.slashed_extensions 
+
+	(  reduce 57 (src line 471)
+	:  shift 17
+	/  shift 20
+	.  reduce 44 (src line 389)
+
+	slashed_extension  goto 19
+	slashed_extensions  goto 18
+
+state 83
+	resource_or_variable:  resource.    (45)
+	resource_or_name:  resource.    (56)
+
+	(  reduce 56 (src line 466)
+	.  reduce 45 (src line 401)
+
+
+state 84
+	literal:  QUOTEDSTRING @ IDENTIFIER.    (20)
+
+	.  reduce 20 (src line 176)
+
+
+state 85
+	literal:  QUOTEDSTRING DTSYMBOL resource_or_name.    (21)
+
+	.  reduce 21 (src line 181)
+
+
+state 86
+	namedexprlist:  namedexprlist , resource_or_name.expr 
+
+	INTCONST  shift 76
+	FLOATCONST  shift 77
+	IDENTIFIER  shift 82
+	QUOTEDSTRING  shift 47
+	URIREF  shift 11
+	FALSE  shift 79
+	TRUE  shift 78
+	.  error
+
+	qname  goto 12
+	resource  goto 83
+	resource_or_name  goto 81
+	resource_or_variable  goto 75
+	slashed_reference  goto 13
+	atomic_expr  goto 74
+	expr  goto 87
+	funccall  goto 33
+	nonatomic_expr  goto 73
+	literal  goto 80
+
+state 87
+	namedexprlist:  namedexprlist , resource_or_name expr.    (33)
+
+	.  reduce 33 (src line 313)
+
+
+29 terminals, 34 nonterminals
+66 grammar rules, 88/2000 states
+0 shift/reduce, 0 reduce/reduce conflicts reported
+83 working sets used
+memory: parser 153/30000
+24 extra closures
+74 shift entries, 3 exceptions
+56 goto entries
+53 entries saved by goto default
+Optimizer space used: output 109/30000
+109 table entries, 0 zero
+maximum spread: 29, maximum offset: 86

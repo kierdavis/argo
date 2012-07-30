@@ -3,6 +3,7 @@ package argo
 import (
 	"compress/zlib"
 	"encoding/binary"
+	"github.com/kierdavis/go/splaytree"
 	"io"
 )
 
@@ -118,36 +119,48 @@ func rdfzEncodePacket(w io.Writer, id uint, values ...string) (err error) {
 	return err
 }
 
-func rdfzEncodeURI(w io.Writer, term *Resource, prefixesPtr *[]string) (err error) {
-	prefixes := *prefixesPtr
-	base, name := SplitPrefix(term.URI)
+type rdfzPrefixTable struct {
+	Tree  *splaytree.SplayTree
+	Count uint
+}
 
-	var prefixID int = -1
-
-	for i, p := range prefixes {
-		if p == base {
-			prefixID = i
-		}
+func (t *rdfzPrefixTable) Lookup(base string) (id uint, ok bool) {
+	i, ok := t.Tree.Search(splaytree.NewHashKey(base))
+	if ok {
+		return i.(uint), true
 	}
 
-	if prefixID < 0 {
-		prefixID = len(prefixes)
-		*prefixesPtr = append(prefixes, base)
+	return 0, false
+}
 
+func (t *rdfzPrefixTable) Add(base string) (id uint) {
+	id = t.Count
+	t.Count++
+	t.Tree = t.Tree.Insert(splaytree.NewHashKey(base), id)
+
+	return id
+}
+
+func rdfzEncodeURI(w io.Writer, term *Resource, prefixes *rdfzPrefixTable) (err error) {
+	base, name := SplitPrefix(term.URI)
+	prefixID, ok := prefixes.Lookup(base)
+
+	if !ok {
+		prefixID = prefixes.Add(base)
 		err = rdfzEncodePacket(w, RDFZ_NEW_PREFIX, base)
 		if err != nil {
 			return err
 		}
 	}
 
-	return rdfzEncodePacket(w, RDFZ_PREFIX_START+uint(prefixID), name)
+	return rdfzEncodePacket(w, RDFZ_PREFIX_START+prefixID, name)
 }
 
 func rdfzEncodeBNode(w io.Writer, term *BlankNode) (err error) {
 	return rdfzEncodePacket(w, RDFZ_BNODE, term.ID)
 }
 
-func rdfzEncodeLiteral(w io.Writer, term *Literal, prefixesPtr *[]string) (err error) {
+func rdfzEncodeLiteral(w io.Writer, term *Literal, prefixes *rdfzPrefixTable) (err error) {
 	if term.Language != "" {
 		return rdfzEncodePacket(w, RDFZ_LITLANG, term.Value, term.Language)
 
@@ -157,7 +170,7 @@ func rdfzEncodeLiteral(w io.Writer, term *Literal, prefixesPtr *[]string) (err e
 			return err
 		}
 
-		return rdfzEncodeURI(w, term.Datatype.(*Resource), prefixesPtr)
+		return rdfzEncodeURI(w, term.Datatype.(*Resource), prefixes)
 
 	}
 
@@ -272,12 +285,12 @@ func SerializeRDFZ(w io.Writer, tripleChan chan *Triple, errChan chan error, _ m
 	z := zlib.NewWriter(w)
 	defer z.Close()
 
-	prefixes := make([]string, 0)
+	prefixes := new(rdfzPrefixTable)
 
 	for triple := range tripleChan {
 		switch subj := triple.Subject.(type) {
 		case *Resource:
-			err = rdfzEncodeURI(z, subj, &prefixes)
+			err = rdfzEncodeURI(z, subj, prefixes)
 		case *BlankNode:
 			err = rdfzEncodeBNode(z, subj)
 		}
@@ -287,7 +300,7 @@ func SerializeRDFZ(w io.Writer, tripleChan chan *Triple, errChan chan error, _ m
 			return
 		}
 
-		err = rdfzEncodeURI(z, triple.Predicate.(*Resource), &prefixes)
+		err = rdfzEncodeURI(z, triple.Predicate.(*Resource), prefixes)
 		if err != nil {
 			errChan <- err
 			return
@@ -295,11 +308,11 @@ func SerializeRDFZ(w io.Writer, tripleChan chan *Triple, errChan chan error, _ m
 
 		switch obj := triple.Object.(type) {
 		case *Resource:
-			err = rdfzEncodeURI(z, obj, &prefixes)
+			err = rdfzEncodeURI(z, obj, prefixes)
 		case *BlankNode:
 			err = rdfzEncodeBNode(z, obj)
 		case *Literal:
-			err = rdfzEncodeLiteral(z, obj, &prefixes)
+			err = rdfzEncodeLiteral(z, obj, prefixes)
 		}
 
 		if err != nil {

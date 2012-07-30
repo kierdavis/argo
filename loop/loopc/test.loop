@@ -1,0 +1,16 @@
+name <http://kierdavis.com/data/opencpu/nmicro/inst/> as nmicro_inst
+name <http://kierdavis.com/data/opencpu/lib/> as opencpulib
+
+func nmicro_inst/nop/impl {
+    rdfs:label "Implementation of NOP instruction"
+}
+
+func nmicro_inst/ldi/impl (i integer) {
+    rdfs:label "Implementation of LDI instruction"
+    rdfs:label of i "Value of immediate field"
+
+    opencpulib:StoreRegister(
+        opencpulib:register <http://kierdavis.com/data/opencpu/nmicro/arch/a>,
+        opencpulib:value i
+    )
+}

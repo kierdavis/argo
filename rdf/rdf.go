@@ -32,6 +32,10 @@ import (
 	"sort"
 	"sync"
 	"time"
+
+	// These packages register their parsers/serializers in argo.Formats, so we don't actually need
+	// to directly reference the package.
+	_ "github.com/kierdavis/argo/rdfaparser"
 )
 
 var LookupCacheFile = filepath.Join(os.Getenv("HOME"), ".prefixes.gob")
@@ -109,7 +113,7 @@ func read(output chan *argo.Triple, errorOutput chan error, prefixMap map[string
 
 			req.Header.Add("Accept", format.PreferredMIMEType)
 
-			msg(ansi.Blue, "Fetching '%s'...\n", url)
+			msg(ansi.White, "Fetching '%s'...\n", url)
 			resp, err := http.DefaultClient.Do(req)
 			if err != nil {
 				errorOutput <- fmt.Errorf("Error when fetching '%s': %s", url, err.Error())
@@ -117,7 +121,7 @@ func read(output chan *argo.Triple, errorOutput chan error, prefixMap map[string
 			}
 			defer resp.Body.Close()
 
-			msg(ansi.Blue, "Parsing '%s' as %s...\n", url, format.Name)
+			msg(ansi.White, "Parsing '%s' as %s...\n", url, format.Name)
 			tripleChan := make(chan *argo.Triple)
 			errChan := make(chan error)
 
@@ -135,7 +139,7 @@ func read(output chan *argo.Triple, errorOutput chan error, prefixMap map[string
 				return
 			}
 
-			msg(ansi.Blue, "Parsed '%s' successfully!\n", url)
+			msg(ansi.White, "Parsed '%s' successfully!\n", url)
 		}()
 	}
 
@@ -156,7 +160,7 @@ func read(output chan *argo.Triple, errorOutput chan error, prefixMap map[string
 					format = argo.Formats["rdfxml"]
 				}
 
-				msg(ansi.Blue, "Parsing standard input as %s...\n", format.Name)
+				msg(ansi.White, "Parsing standard input as %s...\n", format.Name)
 				tripleChan := make(chan *argo.Triple)
 				errChan := make(chan error)
 
@@ -174,7 +178,7 @@ func read(output chan *argo.Triple, errorOutput chan error, prefixMap map[string
 					return
 				}
 
-				msg(ansi.Blue, "Parsed standard input successfully!\n")
+				msg(ansi.White, "Parsed standard input successfully!\n")
 			}()
 
 		} else {
@@ -203,7 +207,7 @@ func read(output chan *argo.Triple, errorOutput chan error, prefixMap map[string
 					}
 					defer f.Close()
 
-					msg(ansi.Blue, "Parsing '%s' as %s...\n", match, format.Name)
+					msg(ansi.White, "Parsing '%s' as %s...\n", match, format.Name)
 					tripleChan := make(chan *argo.Triple)
 					errChan := make(chan error)
 
@@ -221,7 +225,7 @@ func read(output chan *argo.Triple, errorOutput chan error, prefixMap map[string
 						return
 					}
 
-					msg(ansi.Blue, "Parsed '%s' successfully!\n", match)
+					msg(ansi.White, "Parsed '%s' successfully!\n", match)
 				}()
 			}
 		}
@@ -364,36 +368,10 @@ func main() {
 		}
 	}
 
-	tripleChan := make(chan *argo.Triple)
+	parseChan := make(chan *argo.Triple)
+	serializeChan := make(chan *argo.Triple)
 	errChan := make(chan error)
-	graph := argo.NewGraph(argo.NewListStore())
-
-	go read(tripleChan, errChan, graph.Prefixes, args)
-	//go graph.LoadFromChannel(tripleChan)
-
-	go func() {
-		for triple := range tripleChan {
-			rewrite(&triple.Subject, rewrites, subjectRewrites)
-			rewrite(&triple.Predicate, rewrites, predicateRewrites)
-			rewrite(&triple.Object, rewrites, objectRewrites)
-
-			graph.Add(triple)
-			TriplesProcessed++
-		}
-	}()
-
-	wasErrors := false
-	for err = range errChan {
-		wasErrors = true
-		msg(ansi.RedBold, "%s\n", err.Error())
-	}
-
-	if wasErrors && graph.Num() == 0 {
-		// Only exit if _all_ parses failed
-		os.Exit(1)
-	}
-
-	// =============================================================================================
+	prefixMap := make(map[string]string)
 
 	var output io.Writer
 	format := argo.Formats["rdfxml"]
@@ -415,17 +393,26 @@ func main() {
 		format = argo.Formats[args.OutputFormat]
 	}
 
-	msg(ansi.Blue, "Serializing as %s...\n", format.Name)
-	err = graph.Serialize(format.Serializer, output)
+	msg(ansi.White, "Serializing as %s...\n", format.Name)
+	go read(parseChan, errChan, prefixMap, args)
+	go format.Serializer(output, serializeChan, errChan, prefixMap)
 
-	if err != nil {
-		ansi.Fprintf(os.Stderr, ansi.RedBold, "Error when serializing: %s\n", args.OutFile, err.Error())
-		os.Exit(1)
+	go func() {
+		for triple := range parseChan {
+			rewrite(&triple.Subject, rewrites, subjectRewrites)
+			rewrite(&triple.Predicate, rewrites, predicateRewrites)
+			rewrite(&triple.Object, rewrites, objectRewrites)
+
+			serializeChan <- triple
+			TriplesProcessed++
+		}
+	}()
+
+	for err = range errChan {
+		msg(ansi.RedBold, "Error: %s\n", err.Error())
 	}
 
-	msg(ansi.Blue, "Serialized!\n")
-
 	ms := float64(time.Since(startTime).Nanoseconds()) / 1000000.0
-	msg(ansi.Blue, "\n%d triples processed in %.3f seconds (%.3f ms)\n", TriplesProcessed, ms/1000.0, ms)
-	msg(ansi.Blue, "%d terms rewritten\n", Rewritten)
+	msg(ansi.White, "\n%d triples processed in %.3f seconds (%.3f ms)\n", TriplesProcessed, ms/1000.0, ms)
+	msg(ansi.White, "%d terms rewritten\n", Rewritten)
 }
