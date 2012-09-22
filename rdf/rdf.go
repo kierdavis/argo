@@ -370,7 +370,8 @@ func main() {
 
 	parseChan := make(chan *argo.Triple)
 	serializeChan := make(chan *argo.Triple)
-	errChan := make(chan error)
+	parseErrChan := make(chan error)
+	serializeErrChan := make(chan error)
 	prefixMap := make(map[string]string)
 
 	var output io.Writer
@@ -394,8 +395,8 @@ func main() {
 	}
 
 	msg(ansi.White, "Serializing as %s...\n", format.Name)
-	go read(parseChan, errChan, prefixMap, args)
-	go format.Serializer(output, serializeChan, errChan, prefixMap)
+	go read(parseChan, parseErrChan, prefixMap, args)
+	go format.Serializer(output, serializeChan, serializeErrChan, prefixMap)
 
 	go func() {
 		for triple := range parseChan {
@@ -406,9 +407,15 @@ func main() {
 			serializeChan <- triple
 			TriplesProcessed++
 		}
+
+		close(serializeChan)
 	}()
 
-	for err = range errChan {
+	for err = range parseErrChan {
+		msg(ansi.RedBold, "Error: %s\n", err.Error())
+	}
+
+	for err = range serializeErrChan {
 		msg(ansi.RedBold, "Error: %s\n", err.Error())
 	}
 
