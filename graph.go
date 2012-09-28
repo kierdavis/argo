@@ -209,7 +209,7 @@ func (graph *Graph) GetAll(subject Term, predicate Term) (objects []Term) {
 // found.
 func (graph *Graph) Get(subject Term, predicate Term) (object Term) {
 	for triple := range graph.IterTriples() {
-		if triple.Subject == subject && triple.Predicate == predicate {
+		if triple.Subject.Equals(subject) && triple.Predicate.Equals(predicate) {
 			return triple.Object
 		}
 	}
