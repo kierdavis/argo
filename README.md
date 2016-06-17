@@ -1,6 +1,10 @@
 Argo
 ====
 
+**Warning: this library is unmaintained, inefficient and probably broken. I would not recommend using it for anything production-worthy, unless there is really no alternative.**
+
+**Also note that the 'rdfaparser' subpackage is broken as a result of a backwards incompatible API change in one of its dependencies. The 'rdf' subpackage, which depends on 'rdfaparser', is hence also broken.**
+
 An RDF manipulation, parsing and serialisation library, written in Go.
 
 [Documentation for package argo][argo-doc]
