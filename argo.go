@@ -138,18 +138,6 @@ var Formats = map[string]*Format{
 	},
 
 	// No specs yet
-	"rdfz": &Format{
-		ID:                 "rdfz",
-		Name:               "RDFZ",
-		PreferredMIMEType:  "application/x-rdf-compressed",
-		PreferredExtension: ".rdfz",
-		OtherMIMETypes:     []string{},
-		OtherExtensions:    []string{},
-		Parser:             ParseRDFZ,
-		Serializer:         SerializeRDFZ,
-	},
-
-	// No specs yet
 	"squirtle": &Format{
 		ID:                 "squirtle",
 		Name:               "Squirtle",
